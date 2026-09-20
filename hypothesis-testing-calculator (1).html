@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hypothesis Testing Calculator</title>
+<style>
+:root{
+  --paper:#F7F5EF;
+  --paper-2:#F0ECE0;
+  --ink:#1B2430;
+  --ink-soft:#4B5768;
+  --ink-faint:#8A93A0;
+  --card:#FFFFFF;
+  --border:#DED6C2;
+  --border-soft:#E9E3D3;
+  --accent:#1F6F6B;
+  --accent-soft:#E4F1EF;
+  --calc:#2A5C8A;
+  --calc-soft:#E7EEF6;
+  --warn:#B36A22;
+  --warn-soft:#FBEEDF;
+  --reject:#9C3B3B;
+  --reject-soft:#FAEAE9;
+  --keep:#2F7D4F;
+  --keep-soft:#E9F5EE;
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size:15px;
+  line-height:1.55;
+}
+h1,h2,h3,h4{
+  font-family:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  font-weight:600;
+  color:var(--ink);
+  margin:0 0 .4em;
+}
+.formula, .mono{font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;}
+a{color:var(--calc);}
+
+/* ---------- layout shell ---------- */
+.app{
+  display:flex;
+  min-height:100%;
+}
+.sidebar{
+  width:252px;
+  flex:0 0 252px;
+  background:var(--ink);
+  color:#E7E4DA;
+  padding:22px 16px 28px;
+  position:sticky;
+  top:0;
+  align-self:flex-start;
+  height:100vh;
+  overflow-y:auto;
+}
+.brand{
+  padding:0 6px 18px;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  margin-bottom:14px;
+}
+.brand .mark{
+  font-family:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  font-size:1.28rem;
+  font-weight:700;
+  color:#fff;
+  line-height:1.2;
+}
+.brand .sub{
+  font-size:.74rem;
+  color:#B7BFC9;
+  margin-top:6px;
+  line-height:1.4;
+}
+.nav-list{list-style:none;margin:0;padding:0;}
+.nav-list li{margin-bottom:2px;}
+.nav-btn{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  width:100%;
+  text-align:left;
+  background:none;
+  border:none;
+  color:#C7CCD4;
+  font-family:inherit;
+  font-size:.86rem;
+  padding:9px 10px;
+  border-radius:7px;
+  cursor:pointer;
+  transition:background .12s ease, color .12s ease;
+}
+.nav-btn .num{
+  font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size:.72rem;
+  color:#78828F;
+  flex:0 0 18px;
+}
+.nav-btn:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-btn.active{background:var(--accent);color:#fff;}
+.nav-btn.active .num{color:#D6ECE9;}
+
+.side-controls{
+  margin-top:20px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.12);
+}
+.side-controls label{
+  display:block;
+  font-size:.72rem;
+  color:#9AA3AF;
+  margin-bottom:5px;
+}
+.side-controls select{
+  width:100%;
+  margin-bottom:12px;
+}
+.mode-toggle{
+  display:flex;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:7px;
+  overflow:hidden;
+  margin-bottom:6px;
+}
+.mode-toggle button{
+  flex:1;
+  background:transparent;
+  border:none;
+  color:#C7CCD4;
+  padding:7px 4px;
+  font-size:.72rem;
+  font-family:inherit;
+  cursor:pointer;
+}
+.mode-toggle button.active{background:var(--accent);color:#fff;}
+
+.main{
+  flex:1;
+  min-width:0;
+  padding:34px clamp(18px,4vw,52px) 90px;
+  max-width:1180px;
+}
+.page-head{margin-bottom:26px;}
+.page-head h1{font-size:1.9rem;}
+.page-head .lede{color:var(--ink-soft);font-size:.98rem;max-width:62ch;}
+
+.panel{display:none;}
+.panel.active{display:block;}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border-soft);
+  border-radius:12px;
+  padding:20px 22px;
+  margin-bottom:18px;
+}
+.card h2{font-size:1.28rem;margin-bottom:10px;}
+.card h3{font-size:1.02rem;margin-top:4px;}
+.card > p{color:var(--ink-soft);}
+.muted{color:var(--ink-soft);}
+.small{font-size:.82rem;}
+
+/* form grid */
+.field-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:12px 16px;
+  margin:14px 0;
+}
+.field label{
+  display:block;
+  font-size:.76rem;
+  color:var(--ink-soft);
+  margin-bottom:4px;
+}
+.field input[type=text], .field input[type=number], .field select, textarea{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:7px;
+  font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size:.86rem;
+  background:#FCFBF7;
+  color:var(--ink);
+}
+.field input:focus, textarea:focus, select:focus{
+  outline:2px solid var(--calc);
+  outline-offset:1px;
+}
+textarea{font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;min-height:64px;resize:vertical;}
+
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+button.btn{
+  font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size:.84rem;
+  font-weight:600;
+  padding:9px 16px;
+  border-radius:7px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--ink);
+  cursor:pointer;
+  transition:transform .05s ease;
+}
+button.btn:active{transform:translateY(1px);}
+button.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+button.btn.accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+button.btn.ghost{background:transparent;}
+button.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+.pill-toggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:4px 8px 4px 0;}
+.pill-toggle button{
+  border:none;background:#fff;padding:7px 14px;font-size:.8rem;font-family:inherit;cursor:pointer;color:var(--ink-soft);
+}
+.pill-toggle button.active{background:var(--calc);color:#fff;}
+
+/* result blocks */
+.result-card{
+  margin-top:16px;
+  border:1px solid var(--border-soft);
+  border-radius:12px;
+  overflow:hidden;
+}
+.result-head{
+  background:var(--ink);
+  color:#fff;
+  padding:12px 18px;
+  font-family:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  font-size:1.05rem;
+}
+.result-body{padding:16px 18px;background:#FCFBF7;}
+.step{
+  padding:12px 0;
+  border-bottom:1px dashed var(--border);
+}
+.step:last-child{border-bottom:none;}
+.step h4{font-size:.86rem;color:var(--accent);text-transform:none;margin-bottom:6px;letter-spacing:.01em;}
+.step .formula-line{
+  font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size:.88rem;
+  background:var(--calc-soft);
+  color:var(--calc);
+  padding:8px 10px;
+  border-radius:6px;
+  margin:4px 0;
+  display:block;
+  overflow-x:auto;
+}
+.kv{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.86rem;margin:4px 0;}
+.kv span b{color:var(--ink);}
+
+.badge{
+  display:inline-block;
+  padding:4px 11px;
+  border-radius:999px;
+  font-size:.8rem;
+  font-weight:600;
+}
+.badge.reject{background:var(--reject-soft);color:var(--reject);}
+.badge.keep{background:var(--keep-soft);color:var(--keep);}
+.badge.warn{background:var(--warn-soft);color:var(--warn);}
+
+.conclusion-box{
+  border-left:4px solid var(--accent);
+  background:var(--accent-soft);
+  padding:12px 14px;
+  border-radius:0 8px 8px 0;
+  margin-top:10px;
+  font-size:.92rem;
+}
+.conclusion-box.reject{border-color:var(--reject);background:var(--reject-soft);}
+.conclusion-box.keep{border-color:var(--keep);background:var(--keep-soft);}
+
+.error-box{
+  border-left:4px solid var(--reject);
+  background:var(--reject-soft);
+  color:var(--reject);
+  padding:10px 14px;
+  border-radius:0 8px 8px 0;
+  font-size:.86rem;
+  margin-top:10px;
+}
+
+.graph-wrap{margin-top:12px;background:#fff;border:1px solid var(--border-soft);border-radius:10px;padding:8px;}
+.graph-wrap svg{width:100%;height:auto;display:block;}
+
+details.collapse{border:1px solid var(--border-soft);border-radius:8px;margin-top:10px;}
+details.collapse summary{
+  cursor:pointer;padding:9px 14px;font-size:.84rem;font-weight:600;color:var(--calc);list-style:none;
+}
+details.collapse summary::-webkit-details-marker{display:none;}
+details.collapse summary::before{content:"▸ ";}
+details.collapse[open] summary::before{content:"▾ ";}
+details.collapse .inner{padding:0 14px 14px;}
+
+.assumption-list{background:var(--warn-soft);border-radius:8px;padding:10px 14px;font-size:.84rem;color:#7A4A16;margin-top:10px;}
+.assumption-list ul{margin:6px 0 0;padding-left:18px;}
+
+/* tabs for sub-selectors */
+.subtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.subtabs button{
+  padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:.82rem;font-family:inherit;cursor:pointer;color:var(--ink-soft);
+}
+.subtabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media (max-width:720px){.two-col{grid-template-columns:1fr;}}
+
+table.ref-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px;}
+table.ref-table th, table.ref-table td{border:1px solid var(--border-soft);padding:7px 10px;text-align:left;}
+table.ref-table th{background:var(--paper-2);}
+
+.glossary-search{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;margin-bottom:14px;}
+.gloss-term{padding:10px 0;border-bottom:1px solid var(--border-soft);}
+.gloss-term dt{font-weight:600;font-family:'Source Serif 4', Georgia, 'Times New Roman', serif;color:var(--ink);}
+.gloss-term dd{margin:2px 0 0;color:var(--ink-soft);font-size:.88rem;}
+
+.formula-card{border:1px solid var(--border-soft);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+.formula-card h4{color:var(--ink);font-family:'Source Serif 4', Georgia, 'Times New Roman', serif;font-size:1rem;margin-bottom:6px;}
+.formula-card .fx{font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;background:var(--calc-soft);color:var(--calc);padding:8px 10px;border-radius:6px;margin:6px 0;display:inline-block;}
+
+.decision-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.86rem;}
+.decision-table th,.decision-table td{border:1px solid var(--border-soft);padding:9px 12px;text-align:center;}
+.decision-table th{background:var(--paper-2);}
+.decision-table td.t1{background:var(--reject-soft);color:var(--reject);}
+.decision-table td.t2{background:var(--warn-soft);color:var(--warn);}
+.decision-table td.ok{background:var(--keep-soft);color:var(--keep);}
+
+.example-strip{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px;}
+.example-chip{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);background:#fff;font-size:.78rem;cursor:pointer;font-family:inherit;
+}
+.example-chip:hover{background:var(--accent-soft);}
+
+.hbuilder-output{
+  margin-top:14px;padding:14px 16px;background:var(--ink);color:#fff;border-radius:10px;font-family:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;font-size:.95rem;
+}
+.hbuilder-output .tail{color:#9FD8D3;font-family:'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:.78rem;margin-top:6px;}
+
+.footer-note{color:var(--ink-faint);font-size:.78rem;margin-top:30px;text-align:center;}
+body.calc-mode .learning-only{display:none;}
+
+.mobile-topbar{display:none;}
+@media (max-width:880px){
+  .app{flex-direction:column;}
+  .sidebar{
+    position:relative;height:auto;width:100%;flex:none;
+    padding:14px 14px 10px;
+  }
+  .sidebar.collapsed .nav-list, .sidebar.collapsed .side-controls{display:none;}
+  .mobile-topbar{
+    display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  }
+  .main{padding:22px 16px 70px;}
+  .field-grid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:460px){
+  .field-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="mobile-topbar" id="mobileToggle">
+      <div class="brand" style="border:none;padding:0;margin:0;">
+        <div class="mark">Hypothesis Testing</div>
+      </div>
+      <span style="color:#fff;font-size:1.1rem;">☰</span>
+    </div>
+    <div class="brand" id="desktopBrand">
+      <div class="mark">Hypothesis Testing Calculator</div>
+      <div class="sub">Interactive statistical hypothesis testing &amp; confidence interval calculator</div>
+    </div>
+    <ul class="nav-list" id="navList">
+      <li><button class="nav-btn active" data-target="sec1"><span class="num">01</span>Introduction</button></li>
+      <li><button class="nav-btn" data-target="sec2"><span class="num">02</span>Confidence Interval</button></li>
+      <li><button class="nav-btn" data-target="sec3"><span class="num">03</span>1 Population Mean</button></li>
+      <li><button class="nav-btn" data-target="sec4"><span class="num">04</span>P-Value Method</button></li>
+      <li><button class="nav-btn" data-target="sec5"><span class="num">05</span>2 Population Means</button></li>
+      <li><button class="nav-btn" data-target="sec6"><span class="num">06</span>Glossary</button></li>
+      <li><button class="nav-btn" data-target="sec7"><span class="num">07</span>Formula Reference</button></li>
+      <li><button class="nav-btn" data-target="sec8"><span class="num">08</span>Results / Report</button></li>
+    </ul>
+    <div class="side-controls">
+      <label>Mode</label>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="active" data-mode="learning">Learning</button>
+        <button data-mode="calculator">Calculator</button>
+      </div>
+      <label style="margin-top:10px;">Decimal precision</label>
+      <select id="decimalsSel">
+        <option value="2">2 decimals</option>
+        <option value="3">3 decimals</option>
+        <option value="4" selected>4 decimals</option>
+        <option value="6">6 decimals</option>
+      </select>
+    </div>
+  </aside>
+
+  <main class="main" id="mainArea">
+
+  <!-- ================= SECTION 1: INTRODUCTION ================= -->
+  <section class="panel active" id="sec1">
+    <div class="page-head">
+      <h1>Introduction to Hypothesis Testing</h1>
+      <p class="lede">A statistical hypothesis is a claim about a parameter of one or more populations. Hypothesis testing is a structured way to weigh that claim against evidence from a sample.</p>
+    </div>
+
+    <div class="card">
+      <h2>Three methods, one procedure</h2>
+      <p>Every test in this calculator can be run in equivalent ways — the <b>critical value (traditional) method</b>, the <b>P-value method</b>, or, for two-tailed tests, the <b>confidence interval method</b> — and they all lead to the same decision. Each follows the same five steps:</p>
+      <div class="field-grid" style="grid-template-columns:repeat(5,1fr);">
+        <div class="card" style="padding:12px;margin:0;background:var(--paper-2);"><b>1</b><br><span class="small">State H₀ and H₁ and identify the claim</span></div>
+        <div class="card" style="padding:12px;margin:0;background:var(--paper-2);"><b>2</b><br><span class="small">Choose the test statistic and compute it</span></div>
+        <div class="card" style="padding:12px;margin:0;background:var(--paper-2);"><b>3</b><br><span class="small">Find the critical value / rejection region (or the P-value)</span></div>
+        <div class="card" style="padding:12px;margin:0;background:var(--paper-2);"><b>4</b><br><span class="small">Make the decision</span></div>
+        <div class="card" style="padding:12px;margin:0;background:var(--paper-2);"><b>5</b><br><span class="small">Write the conclusion</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Hypothesis builder</h2>
+      <p class="small muted">Choose a parameter, a comparison, and a hypothesized value — H₀ and H₁ are generated automatically, along with the tail type of the test.</p>
+      <div class="field-grid">
+        <div class="field">
+          <label>Parameter</label>
+          <select id="hb-param">
+            <option value="mu">μ (one population mean)</option>
+            <option value="mu12">μ₁ − μ₂ (difference of two means)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Comparison</label>
+          <select id="hb-op">
+            <option value="=">= (equal to)</option>
+            <option value="≠">≠ (not equal to)</option>
+            <option value=">">&gt; (greater than)</option>
+            <option value="<">&lt; (less than)</option>
+            <option value="≥">≥ (at least)</option>
+            <option value="≤">≤ (at most)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Hypothesized value</label>
+          <input type="text" id="hb-val" value="0" class="mono">
+        </div>
+      </div>
+      <button class="btn accent" onclick="buildHypothesis()">Generate H₀ / H₁</button>
+      <div class="hbuilder-output" id="hb-output">Select options above and click Generate.</div>
+    </div>
+
+    <div class="card">
+      <h2>Type I and Type II error</h2>
+      <div class="two-col">
+        <div>
+          <h3>Type I Error</h3>
+          <p class="small">Rejecting H₀ even though H₀ is actually true (a false alarm).</p>
+          <span class="formula-line">P(Type I Error) = α  (significance level)</span>
+        </div>
+        <div>
+          <h3>Type II Error</h3>
+          <p class="small">Failing to reject H₀ even though H₀ is actually false (a missed detection).</p>
+          <span class="formula-line">P(Type II Error) = β</span>
+        </div>
+      </div>
+      <table class="decision-table">
+        <tr><th>State of nature</th><th>Reject H₀</th><th>Do not reject H₀</th></tr>
+        <tr><td><b>H₀ is true</b></td><td class="t1">Type I error</td><td class="ok">Correct decision</td></tr>
+        <tr><td><b>H₀ is false</b></td><td class="ok">Correct decision</td><td class="t2">Type II error</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Common wording for claims</h2>
+      <p class="small muted">A phrasing guide for turning a written claim into the correct inequality.</p>
+      <table class="ref-table">
+        <tr><th>H₁ : &gt;</th><th>H₁ : &lt;</th></tr>
+        <tr><td>Is greater than / exceeds / is above / is higher than / is longer than / has increased</td><td>Is less than / is below / is lower than / is shorter than / has decreased / has been reduced</td></tr>
+      </table>
+      <table class="ref-table" style="margin-top:8px;">
+        <tr><th>H₀ : ≥</th><th>H₀ : ≤</th></tr>
+        <tr><td>Is at least / is greater than or equal to / is no less than</td><td>Is at most / is less than or equal to / is no more than</td></tr>
+      </table>
+      <table class="ref-table" style="margin-top:8px;">
+        <tr><th>H₀ : =</th><th>H₁ : ≠</th></tr>
+        <tr><td>Is equal to / is the same as / has not changed / is unchanged</td><td>Is not equal to / differs from / has changed / is not the same as</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Which test should I use?</h2>
+      <p class="small muted">Answer three or four quick questions and get a recommended procedure — this does not make the statistical decision for you.</p>
+      <div class="field-grid">
+        <div class="field"><label>1. How many populations?</label>
+          <select id="wiz-pop"><option value="1">One</option><option value="2">Two</option></select>
+        </div>
+        <div class="field"><label>2. Is population σ known?</label>
+          <select id="wiz-sigma"><option value="known">Yes — σ known</option><option value="unknown">No — σ unknown</option></select>
+        </div>
+        <div class="field" id="wiz-eqvar-wrap" style="display:none;"><label>3. Are variances assumed equal?</label>
+          <select id="wiz-eqvar"><option value="equal">Yes — equal variances</option><option value="unequal">No — unequal (Welch)</option></select>
+        </div>
+      </div>
+      <button class="btn accent" onclick="runWizard()">Recommend procedure</button>
+      <div class="hbuilder-output" id="wiz-output" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 2: CONFIDENCE INTERVAL ================= -->
+  <section class="panel" id="sec2">
+    <div class="page-head">
+      <h1>Hypothesis Testing Using Confidence Interval</h1>
+      <p class="lede">For a two-tailed test at significance level α, build the (1−α)×100% confidence interval for the parameter. H₀ is rejected exactly when the hypothesized value lies outside that interval. This equivalence holds for two-tailed tests only.</p>
+    </div>
+
+    <div class="card">
+      <div class="subtabs">
+        <button class="active" onclick="setCITab('one')">One Population Mean</button>
+        <button onclick="setCITab('two')">Difference Between Two Means</button>
+      </div>
+
+      <div id="ci-one">
+        <div class="subtabs">
+          <button class="active" onclick="setCICase('known')">Case 1 — σ Known</button>
+          <button onclick="setCICase('unknown')">Case 2 — σ Unknown</button>
+        </div>
+        <div class="example-strip">
+          <button class="example-chip" onclick="loadExampleCIBattery()">Load example: Battery life (σ unknown)</button>
+        </div>
+        <div class="subtabs" style="margin-top:0;">
+          <button class="active" id="ci1-mode-summary" onclick="setCI1Mode('summary')">Summary statistics</button>
+          <button id="ci1-mode-raw" onclick="setCI1Mode('raw')">Raw data</button>
+        </div>
+        <div id="ci1-raw-wrap" style="display:none;">
+          <div class="field"><label>Raw sample data (comma or space separated)</label>
+            <textarea id="ci1-raw"></textarea>
+          </div>
+          <button class="btn ghost" onclick="applyRawCI1()">Use this data</button>
+        </div>
+        <div class="field-grid">
+          <div class="field"><label>Sample mean x̄</label><input type="text" id="ci1-xbar" class="mono"></div>
+          <div class="field" id="ci1-sigma-wrap"><label>Population σ</label><input type="text" id="ci1-sigma" class="mono"></div>
+          <div class="field" id="ci1-s-wrap" style="display:none;"><label>Sample s</label><input type="text" id="ci1-s" class="mono"></div>
+          <div class="field"><label>Sample size n</label><input type="text" id="ci1-n" class="mono"></div>
+          <div class="field"><label>Significance level α</label>
+            <select id="ci1-alpha"><option value="0.10">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option><option value="custom">Custom</option></select>
+          </div>
+          <div class="field" id="ci1-alpha-custom-wrap" style="display:none;"><label>Custom α</label><input type="text" id="ci1-alpha-custom" class="mono"></div>
+          <div class="field"><label>Hypothesized μ₀ (for decision)</label><input type="text" id="ci1-mu0" class="mono"></div>
+        </div>
+        <div class="assumption-list"><b>Assumptions:</b><ul><li>Random sample</li><li>Population approximately normally distributed (required when n is small)</li></ul></div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="calcCI1()">Calculate</button>
+          <button class="btn ghost" onclick="resetCI1()">Reset</button>
+        </div>
+        <div id="ci1-result"></div>
+      </div>
+
+      <div id="ci-two" style="display:none;">
+        <div class="subtabs">
+          <button class="active" onclick="setCI2Case('known')">Known Variances</button>
+          <button onclick="setCI2Case('equal')">Unknown, Equal Variances</button>
+          <button onclick="setCI2Case('welch')">Unknown, Unequal (Welch)</button>
+        </div>
+        <div class="example-strip">
+          <button class="example-chip" onclick="loadExampleCIDelivery()">Load example: Delivery times, known variances</button>
+          <button class="example-chip" onclick="loadExampleCIExams()">Load example: Exam scores (raw data)</button>
+        </div>
+        <div class="subtabs" style="margin-top:0;">
+          <button class="active" id="ci2-mode-summary" onclick="setCI2Mode('summary')">Summary statistics</button>
+          <button id="ci2-mode-raw" onclick="setCI2Mode('raw')">Raw data</button>
+        </div>
+        <div id="ci2-raw-wrap" style="display:none;">
+          <div class="two-col">
+            <div class="field"><label>Population 1 raw data</label><textarea id="ci2-raw1"></textarea></div>
+            <div class="field"><label>Population 2 raw data</label><textarea id="ci2-raw2"></textarea></div>
+          </div>
+          <button class="btn ghost" onclick="applyRawCI2()">Use this data</button>
+        </div>
+        <div class="two-col">
+          <div>
+            <h3>Population 1</h3>
+            <div class="field-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="field"><label>x̄₁</label><input type="text" id="ci2-xbar1" class="mono"></div>
+              <div class="field" id="ci2-sigma1-wrap"><label>σ₁</label><input type="text" id="ci2-sigma1" class="mono"></div>
+              <div class="field" id="ci2-s1-wrap" style="display:none;"><label>s₁</label><input type="text" id="ci2-s1" class="mono"></div>
+              <div class="field"><label>n₁</label><input type="text" id="ci2-n1" class="mono"></div>
+            </div>
+          </div>
+          <div>
+            <h3>Population 2</h3>
+            <div class="field-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="field"><label>x̄₂</label><input type="text" id="ci2-xbar2" class="mono"></div>
+              <div class="field" id="ci2-sigma2-wrap"><label>σ₂</label><input type="text" id="ci2-sigma2" class="mono"></div>
+              <div class="field" id="ci2-s2-wrap" style="display:none;"><label>s₂</label><input type="text" id="ci2-s2" class="mono"></div>
+              <div class="field"><label>n₂</label><input type="text" id="ci2-n2" class="mono"></div>
+            </div>
+          </div>
+        </div>
+        <div class="field-grid">
+          <div class="field"><label>Hypothesized μ₁−μ₂</label><input type="text" id="ci2-mu0" value="0" class="mono"></div>
+          <div class="field"><label>Significance level α</label>
+            <select id="ci2-alpha"><option value="0.10">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option><option value="custom">Custom</option></select>
+          </div>
+          <div class="field" id="ci2-alpha-custom-wrap" style="display:none;"><label>Custom α</label><input type="text" id="ci2-alpha-custom" class="mono"></div>
+        </div>
+        <div class="assumption-list"><b>Assumptions:</b><ul><li>Independent samples</li><li id="ci2-assump-var">Equal / unequal population variances as selected above</li></ul></div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="calcCI2()">Calculate</button>
+          <button class="btn ghost" onclick="resetCI2()">Reset</button>
+        </div>
+        <div id="ci2-result"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 3: 1 POPULATION MEAN ================= -->
+  <section class="panel" id="sec3">
+    <div class="page-head">
+      <h1>Hypothesis Testing for 1 Population Mean</h1>
+      <p class="lede">Use the Z test when the population standard deviation σ is known. Use the T test when σ is unknown and is estimated by the sample standard deviation s.</p>
+    </div>
+    <div class="card">
+      <div class="subtabs">
+        <button class="active" onclick="setT1Case('known')">σ Known (Z test)</button>
+        <button onclick="setT1Case('unknown')">σ Unknown (T test)</button>
+      </div>
+      <div class="subtabs">
+        <button class="active" onclick="setT1Tail('two')">Two-tailed</button>
+        <button onclick="setT1Tail('right')">Right-tailed</button>
+        <button onclick="setT1Tail('left')">Left-tailed</button>
+      </div>
+      <div class="example-strip">
+        <button class="example-chip" onclick="loadExampleReading()">Load: Reading speed (Z, right-tailed)</button>
+        <button class="example-chip" onclick="loadExampleBulb()">Load: LED bulb lifetime (Z, left-tailed)</button>
+        <button class="example-chip" onclick="loadExamplePickup()">Load: Pickup wait times (T, raw data, left-tailed)</button>
+        <button class="example-chip" onclick="loadExampleScreenTime()">Load: Daily screen time (Z, two-tailed)</button>
+      </div>
+      <div class="subtabs" style="margin-top:0;">
+        <button class="active" id="t1-mode-summary" onclick="setT1Mode('summary')">Summary statistics</button>
+        <button id="t1-mode-raw" onclick="setT1Mode('raw')">Raw data</button>
+      </div>
+      <div id="t1-raw-wrap" style="display:none;">
+        <div class="field"><label>Raw sample data</label><textarea id="t1-raw"></textarea></div>
+        <button class="btn ghost" onclick="applyRawT1()">Use this data</button>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Sample mean x̄</label><input type="text" id="t1-xbar" class="mono"></div>
+        <div class="field"><label>Hypothesized μ₀</label><input type="text" id="t1-mu0" class="mono"></div>
+        <div class="field" id="t1-sigma-wrap"><label>Population σ</label><input type="text" id="t1-sigma" class="mono"></div>
+        <div class="field" id="t1-s-wrap" style="display:none;"><label>Sample s</label><input type="text" id="t1-s" class="mono"></div>
+        <div class="field"><label>Sample size n</label><input type="text" id="t1-n" class="mono"></div>
+        <div class="field"><label>Significance level α</label>
+          <select id="t1-alpha"><option value="0.10">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option><option value="custom">Custom</option></select>
+        </div>
+        <div class="field" id="t1-alpha-custom-wrap" style="display:none;"><label>Custom α</label><input type="text" id="t1-alpha-custom" class="mono"></div>
+        <div class="field"><label>Units (optional)</label><input type="text" id="t1-units" class="mono" placeholder="e.g. minutes"></div>
+      </div>
+      <div class="assumption-list" id="t1-assump"><b>Assumptions:</b><ul><li>Random sample</li><li>Population approximately normally distributed (or n ≥ 30)</li></ul></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="calcT1()">Calculate</button>
+        <button class="btn ghost" onclick="resetT1()">Reset</button>
+      </div>
+      <div id="t1-result"></div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 4: P-VALUE METHOD ================= -->
+  <section class="panel" id="sec4">
+    <div class="page-head">
+      <h1>Hypothesis Testing Using the P-Value Method</h1>
+      <p class="lede">The P-value is the probability, assuming H₀ is true, of getting a test statistic at least as extreme as the one observed. Reject H₀ when P-value ≤ α; otherwise, do not reject H₀.</p>
+    </div>
+    <div class="card">
+      <div class="hbuilder-output" style="margin-top:0;margin-bottom:16px;">
+        H₀ / H₁ → Test statistic → P-value → Compare P-value with α → Decision → Conclusion
+      </div>
+      <div class="subtabs">
+        <button class="active" onclick="setPVTest('z')">Z test</button>
+        <button onclick="setPVTest('t')">T test</button>
+      </div>
+      <div class="subtabs">
+        <button class="active" onclick="setPVTail('two')">Two-tailed</button>
+        <button onclick="setPVTail('right')">Right-tailed</button>
+        <button onclick="setPVTail('left')">Left-tailed</button>
+      </div>
+      <div class="subtabs" style="margin-top:0;">
+        <button class="active" id="pv-mode-stat" onclick="setPVMode('stat')">Enter test statistic</button>
+        <button id="pv-mode-raw" onclick="setPVMode('raw')">Calculate from raw inputs</button>
+      </div>
+      <div class="example-strip">
+        <button class="example-chip" onclick="loadExamplePackage()">Load: Package weight (Z, left-tailed)</button>
+        <button class="example-chip" onclick="loadExamplePageLoad()">Load: Page load time (T, two-tailed)</button>
+      </div>
+
+      <div id="pv-stat-wrap">
+        <div class="field-grid">
+          <div class="field"><label id="pv-stat-label">Test statistic (z)</label><input type="text" id="pv-stat" class="mono"></div>
+          <div class="field" id="pv-df-wrap" style="display:none;"><label>Degrees of freedom</label><input type="text" id="pv-df" class="mono"></div>
+        </div>
+      </div>
+      <div id="pv-raw-wrap" style="display:none;">
+        <div class="field-grid">
+          <div class="field"><label>Sample mean x̄</label><input type="text" id="pv-xbar" class="mono"></div>
+          <div class="field"><label>Hypothesized μ₀</label><input type="text" id="pv-mu0" class="mono"></div>
+          <div class="field" id="pv-sigma-wrap"><label>Population σ</label><input type="text" id="pv-sigma" class="mono"></div>
+          <div class="field" id="pv-s-wrap" style="display:none;"><label>Sample s</label><input type="text" id="pv-s" class="mono"></div>
+          <div class="field"><label>Sample size n</label><input type="text" id="pv-n" class="mono"></div>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Significance level α</label>
+          <select id="pv-alpha"><option value="0.10">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option><option value="custom">Custom</option></select>
+        </div>
+        <div class="field" id="pv-alpha-custom-wrap" style="display:none;"><label>Custom α</label><input type="text" id="pv-alpha-custom" class="mono"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="calcPV()">Calculate P-value</button>
+        <button class="btn ghost" onclick="resetPV()">Reset</button>
+      </div>
+      <div id="pv-result"></div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 5: 2 POPULATION MEANS ================= -->
+  <section class="panel" id="sec5">
+    <div class="page-head">
+      <h1>Hypothesis Testing for 2 Population Means</h1>
+      <p class="lede">Test a claim about μ₁ − μ₂ using known population variances, a pooled variance when the unknown variances are assumed equal, or Welch's method when they are assumed unequal.</p>
+    </div>
+    <div class="card">
+      <div class="subtabs">
+        <button class="active" onclick="setT2Case('known')">Known Variances</button>
+        <button onclick="setT2Case('equal')">Unknown, Equal Variances</button>
+        <button onclick="setT2Case('welch')">Unknown, Unequal (Welch)</button>
+      </div>
+      <div class="subtabs">
+        <button class="active" onclick="setT2Tail('two')">Two-tailed</button>
+        <button onclick="setT2Tail('right')">Right-tailed</button>
+        <button onclick="setT2Tail('left')">Left-tailed</button>
+      </div>
+      <div class="example-strip">
+        <button class="example-chip" onclick="loadExampleDelivery()">Load: Delivery times (known σ)</button>
+        <button class="example-chip" onclick="loadExampleTraining()">Load: Training methods (equal variances)</button>
+        <button class="example-chip" onclick="loadExampleBatteryBrands()">Load: Battery brands (Welch, unequal)</button>
+      </div>
+      <div class="subtabs" style="margin-top:0;">
+        <button class="active" id="t2-mode-summary" onclick="setT2Mode('summary')">Summary statistics</button>
+        <button id="t2-mode-raw" onclick="setT2Mode('raw')">Raw data</button>
+      </div>
+      <div id="t2-raw-wrap" style="display:none;">
+        <div class="two-col">
+          <div class="field"><label>Population 1 raw data</label><textarea id="t2-raw1"></textarea></div>
+          <div class="field"><label>Population 2 raw data</label><textarea id="t2-raw2"></textarea></div>
+        </div>
+        <button class="btn ghost" onclick="applyRawT2()">Use this data</button>
+      </div>
+      <div class="two-col">
+        <div>
+          <h3>Population 1</h3>
+          <div class="field-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="field"><label>x̄₁</label><input type="text" id="t2-xbar1" class="mono"></div>
+            <div class="field" id="t2-sigma1-wrap"><label>σ₁</label><input type="text" id="t2-sigma1" class="mono"></div>
+            <div class="field" id="t2-s1-wrap" style="display:none;"><label>s₁</label><input type="text" id="t2-s1" class="mono"></div>
+            <div class="field"><label>n₁</label><input type="text" id="t2-n1" class="mono"></div>
+          </div>
+        </div>
+        <div>
+          <h3>Population 2</h3>
+          <div class="field-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="field"><label>x̄₂</label><input type="text" id="t2-xbar2" class="mono"></div>
+            <div class="field" id="t2-sigma2-wrap"><label>σ₂</label><input type="text" id="t2-sigma2" class="mono"></div>
+            <div class="field" id="t2-s2-wrap" style="display:none;"><label>s₂</label><input type="text" id="t2-s2" class="mono"></div>
+            <div class="field"><label>n₂</label><input type="text" id="t2-n2" class="mono"></div>
+          </div>
+        </div>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Hypothesized μ₁−μ₂</label><input type="text" id="t2-mu0" value="0" class="mono"></div>
+        <div class="field"><label>Significance level α</label>
+          <select id="t2-alpha"><option value="0.10">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option><option value="custom">Custom</option></select>
+        </div>
+        <div class="field" id="t2-alpha-custom-wrap" style="display:none;"><label>Custom α</label><input type="text" id="t2-alpha-custom" class="mono"></div>
+      </div>
+      <div class="assumption-list"><b>Assumptions:</b><ul><li>Independent samples</li><li id="t2-assump-var">Population variance assumption as selected above</li></ul></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="calcT2()">Calculate</button>
+        <button class="btn ghost" onclick="resetT2()">Reset</button>
+      </div>
+      <div id="t2-result"></div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 6: GLOSSARY ================= -->
+  <section class="panel" id="sec6">
+    <div class="page-head">
+      <h1>Statistical Definitions &amp; Concepts</h1>
+      <p class="lede">Key statistical terms and concepts, searchable.</p>
+    </div>
+    <div class="card">
+      <input type="text" class="glossary-search" id="glossSearch" placeholder="Search the glossary…" oninput="renderGlossary()">
+      <dl id="glossList"></dl>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 7: FORMULA REFERENCE ================= -->
+  <section class="panel" id="sec7">
+    <div class="page-head">
+      <h1>Test Distribution &amp; Formula Reference</h1>
+      <p class="lede">Every formula used in this calculator, organized by topic, with symbol definitions, when to use it, and a small worked example.</p>
+    </div>
+    <div class="card" id="formulaRef"></div>
+  </section>
+
+  <!-- ================= SECTION 8: RESULTS / REPORT ================= -->
+  <section class="panel" id="sec8">
+    <div class="page-head">
+      <h1>Results Dashboard &amp; Report</h1>
+      <p class="lede">The most recently completed calculation from any calculator on this site, ready to print or copy.</p>
+    </div>
+    <div class="card" id="reportCard">
+      <p class="muted">No calculation has been run yet. Complete a test in any calculator section and it will appear here.</p>
+    </div>
+    <div class="btn-row" style="padding:0 0 20px;">
+      <button class="btn primary" onclick="window.print()">Print report</button>
+      <button class="btn ghost" onclick="copyReport()">Copy report as text</button>
+    </div>
+  </section>
+
+  <p class="footer-note"></p>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   MODULE: Statistical Distribution Engine
+   ============================================================ */
+function erf(x){
+  // Abramowitz & Stegun 7.1.26
+  const sign = x<0?-1:1; x=Math.abs(x);
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const t=1/(1+p*x);
+  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return sign*y;
+}
+function normalPDF(z){ return Math.exp(-z*z/2)/Math.sqrt(2*Math.PI); }
+function normalCDF(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
+function normalInvCDF(p){
+  // Acklam's algorithm (rational approximation)
+  if(p<=0) return -Infinity; if(p>=1) return Infinity;
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const plow=0.02425, phigh=1-plow;
+  let q,r;
+  if(p<plow){
+    q=Math.sqrt(-2*Math.log(p));
+    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  } else if(p<=phigh){
+    q=p-0.5; r=q*q;
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+  } else {
+    q=Math.sqrt(-2*Math.log(1-p));
+    return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  }
+}
+function logGamma(x){
+  // Lanczos approximation
+  const g=7;
+  const c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(x<0.5){
+    return Math.log(Math.PI/Math.sin(Math.PI*x)) - logGamma(1-x);
+  }
+  x-=1;
+  let a=c[0];
+  const t=x+g+0.5;
+  for(let i=1;i<g+2;i++) a+=c[i]/(x+i);
+  return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);
+}
+function betacf(x,a,b){
+  const MAXIT=200, EPS=3e-9, FPMIN=1e-300;
+  const qab=a+b, qap=a+1, qam=a-1;
+  let c=1, d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN) d=FPMIN;
+  d=1/d; let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    const m2=2*m;
+    let aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN) d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN) d=FPMIN;
+    c=1+aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
+    d=1/d; const del=d*c; h*=del;
+    if(Math.abs(del-1)<EPS) break;
+  }
+  return h;
+}
+function betainc(x,a,b){
+  if(x<=0) return 0; if(x>=1) return 1;
+  const bt=Math.exp(logGamma(a+b)-logGamma(a)-logGamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  if(x<(a+1)/(a+b+2)) return bt*betacf(x,a,b)/a;
+  return 1-bt*betacf(1-x,b,a)/b;
+}
+function tCDF(t,df){
+  const x=df/(df+t*t);
+  const ib=betainc(x,df/2,0.5);
+  return t>=0 ? 1-0.5*ib : 0.5*ib;
+}
+function tPDF(t,df){
+  const num=Math.exp(logGamma((df+1)/2)-logGamma(df/2));
+  return (num/Math.sqrt(df*Math.PI))*Math.pow(1+(t*t)/df,-(df+1)/2);
+}
+function tInvCDF(p,df){
+  // bisection using monotonic tCDF
+  let lo=-100, hi=100;
+  for(let i=0;i<200;i++){
+    const mid=(lo+hi)/2;
+    if(tCDF(mid,df)<p) lo=mid; else hi=mid;
+  }
+  return (lo+hi)/2;
+}
+function zCritical(alpha,tail){
+  if(tail==='two') return normalInvCDF(1-alpha/2);
+  if(tail==='right') return normalInvCDF(1-alpha);
+  return -normalInvCDF(1-alpha); // left
+}
+function tCritical(alpha,df,tail){
+  if(tail==='two') return tInvCDF(1-alpha/2,df);
+  if(tail==='right') return tInvCDF(1-alpha,df);
+  return -tInvCDF(1-alpha,df);
+}
+function pValueZ(z,tail){
+  if(tail==='right') return 1-normalCDF(z);
+  if(tail==='left') return normalCDF(z);
+  return 2*(1-normalCDF(Math.abs(z)));
+}
+function pValueT(t,df,tail){
+  if(tail==='right') return 1-tCDF(t,df);
+  if(tail==='left') return tCDF(t,df);
+  return 2*(1-tCDF(Math.abs(t),df));
+}
+
+/* ============================================================
+   MODULE: Descriptive statistics helpers
+   ============================================================ */
+function calculateMean(arr){ return arr.reduce((s,v)=>s+v,0)/arr.length; }
+function calculateSampleVariance(arr){
+  const m=calculateMean(arr);
+  return arr.reduce((s,v)=>s+(v-m)*(v-m),0)/(arr.length-1);
+}
+function calculateStandardDeviation(arr){ return Math.sqrt(calculateSampleVariance(arr)); }
+function calculateStandardError(sd,n){ return sd/Math.sqrt(n); }
+function parseRawData(str){
+  return str.split(/[,\s]+/).map(s=>s.trim()).filter(s=>s.length).map(Number).filter(n=>!isNaN(n));
+}
+function summarizeRaw(arr){
+  if(arr.length<2) return null;
+  return {
+    n:arr.length, mean:calculateMean(arr), sd:calculateStandardDeviation(arr),
+    variance:calculateSampleVariance(arr), min:Math.min(...arr), max:Math.max(...arr)
+  };
+}
+function calculatePooledVariance(n1,s1,n2,s2){
+  return ((n1-1)*s1*s1+(n2-1)*s2*s2)/(n1+n2-2);
+}
+function calculateWelchDegreesOfFreedom(s1,n1,s2,n2){
+  const num=Math.pow(s1*s1/n1+s2*s2/n2,2);
+  const den=Math.pow(s1*s1/n1,2)/(n1-1)+Math.pow(s2*s2/n2,2)/(n2-1);
+  return Math.floor(num/den); // round ν down to the nearest integer
+}
+
+/* ============================================================
+   Global state & shared UI helpers
+   ============================================================ */
+const APP = {decimals:4, mode:'learning', lastResult:null};
+function fmt(x){
+  if(x===null||x===undefined||!Number.isFinite(x)) return '—';
+  return x.toFixed(APP.decimals);
+}
+function tailLabel(tail){ return tail==='two'?'Two-tailed':tail==='right'?'Right-tailed':'Left-tailed'; }
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function num(id){ const el=document.getElementById(id); if(!el) return NaN; const v=parseFloat(el.value); return v; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
+function getAlpha(prefix){
+  const sel=document.getElementById(prefix+'-alpha').value;
+  if(sel==='custom') return parseFloat(document.getElementById(prefix+'-alpha-custom').value);
+  return parseFloat(sel);
+}
+function wireAlphaToggle(prefix){
+  const sel=document.getElementById(prefix+'-alpha');
+  const wrap=document.getElementById(prefix+'-alpha-custom-wrap');
+  sel.addEventListener('change',()=>{ wrap.style.display = sel.value==='custom' ? '' : 'none'; });
+}
+function validationError(msg){
+  return `<div class="error-box">${esc(msg)}</div>`;
+}
+function checkAlpha(a){ return Number.isFinite(a) && a>0 && a<1; }
+
+/* ============================================================
+   Distribution graph (inline SVG) — used by 1-mean and 2-mean tests
+   ============================================================ */
+function distGraphSVG(kind, df, tail, crit, stat){
+  const W=640,H=210,pad=34;
+  const critArr = Array.isArray(crit)?crit:[crit];
+  const range = Math.max(4.2, Math.abs(stat)*1.2+0.6, ...critArr.map(c=>Math.abs(c)*1.2+0.6));
+  const pdf = x => kind==='z' ? normalPDF(x) : tPDF(x,df);
+  const N=220;
+  let maxY=0; const pts=[];
+  for(let i=0;i<=N;i++){
+    const x=-range+ (2*range*i/N);
+    const y=pdf(x);
+    if(y>maxY) maxY=y;
+    pts.push([x,y]);
+  }
+  const xScale = x => pad + (x+range)/(2*range)*(W-2*pad);
+  const yScale = y => (H-pad) - (y/maxY)*(H-2*pad-14);
+  const baseline = H-pad;
+  const curvePts = pts.map(p=>`${xScale(p[0]).toFixed(1)},${yScale(p[1]).toFixed(1)}`).join(' ');
+
+  function shadedRegion(xFrom,xTo){
+    const seg = pts.filter(p=>p[0]>=xFrom-1e-9 && p[0]<=xTo+1e-9);
+    if(seg.length<2) return '';
+    let d = `M ${xScale(xFrom).toFixed(1)},${baseline} `;
+    seg.forEach(p=> d+= `L ${xScale(p[0]).toFixed(1)},${yScale(p[1]).toFixed(1)} `);
+    d += `L ${xScale(xTo).toFixed(1)},${baseline} Z`;
+    return `<path d="${d}" fill="var(--reject)" fill-opacity="0.28" stroke="none"></path>`;
+  }
+
+  let shading='', critLines='';
+  if(tail==='two'){
+    const c=Math.abs(critArr[0]);
+    shading = shadedRegion(-range,-c) + shadedRegion(c,range);
+    critLines = critLine(-c,xScale,baseline,pad) + critLine(c,xScale,baseline,pad);
+  } else if(tail==='right'){
+    const c=critArr[0];
+    shading = shadedRegion(c,range);
+    critLines = critLine(c,xScale,baseline,pad);
+  } else {
+    const c=critArr[0];
+    shading = shadedRegion(-range,c);
+    critLines = critLine(c,xScale,baseline,pad);
+  }
+  function critLine(c,xScale,baseline,pad){
+    const x=xScale(c);
+    return `<line x1="${x}" y1="${pad-4}" x2="${x}" y2="${baseline}" stroke="var(--reject)" stroke-width="1.4" stroke-dasharray="4 3"/>
+      <text x="${x}" y="${pad-8}" font-size="10" fill="var(--reject)" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace">${c.toFixed(3)}</text>`;
+  }
+  const sx = xScale(stat);
+  const statLine = `<line x1="${sx}" y1="${pad-4}" x2="${sx}" y2="${baseline}" stroke="var(--calc)" stroke-width="2"/>
+    <text x="${sx}" y="${H-8}" font-size="11" fill="var(--calc)" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-weight="600">stat=${stat.toFixed(3)}</text>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Sampling distribution with rejection region">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>
+    ${shading}
+    <polyline points="${curvePts}" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+    <line x1="${pad}" y1="${baseline}" x2="${W-pad}" y2="${baseline}" stroke="var(--ink-faint)" stroke-width="1"/>
+    ${critLines}
+    ${statLine}
+    <text x="${W-pad}" y="${pad-10}" font-size="10" fill="var(--ink-faint)" text-anchor="end" font-family="'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif">${kind==='z'?'Standard normal (z)':'t distribution, df='+df}</text>
+  </svg>`;
+}
+
+/* ============================================================
+   Report / results dashboard
+   ============================================================ */
+function setReport(titleHtml, bodyHtml, plainText){
+  APP.lastResult = plainText;
+  document.getElementById('reportCard').innerHTML = `
+    <div class="result-head" style="margin:-20px -22px 16px;border-radius:12px 12px 0 0;">${titleHtml}</div>
+    ${bodyHtml}`;
+}
+function copyReport(){
+  if(!APP.lastResult){ alert('No report to copy yet — run a calculation first.'); return; }
+  navigator.clipboard.writeText(APP.lastResult).then(()=>{
+    alert('Report copied to clipboard.');
+  }).catch(()=>{ alert('Could not copy automatically — please select and copy the report manually.'); });
+}
+
+/* ============================================================
+   Navigation & global controls
+   ============================================================ */
+function initNav(){
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById(btn.dataset.target).classList.add('active');
+      document.getElementById('mainArea').scrollTop=0;
+      window.scrollTo(0,0);
+      if(window.innerWidth<=880) document.getElementById('sidebar').classList.add('collapsed');
+    });
+  });
+  document.getElementById('mobileToggle').addEventListener('click',()=>{
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+  if(window.innerWidth<=880) document.getElementById('sidebar').classList.add('collapsed');
+
+  document.getElementById('modeToggle').querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.getElementById('modeToggle').querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      APP.mode=b.dataset.mode;
+      document.body.classList.toggle('calc-mode', APP.mode==='calculator');
+    });
+  });
+  document.getElementById('decimalsSel').addEventListener('change',e=>{ APP.decimals=parseInt(e.target.value,10); });
+
+  ['ci1','ci2','t1','pv','t2'].forEach(wireAlphaToggle);
+}
+
+/* ============================================================
+   SECTION 1: Hypothesis builder & wizard
+   ============================================================ */
+function buildHypothesis(){
+  const param=document.getElementById('hb-param').value;
+  const op=document.getElementById('hb-op').value;
+  const val=document.getElementById('hb-val').value || '0';
+  const sym = param==='mu' ? 'μ' : 'μ₁ − μ₂';
+  const pairs = {
+    '=':{h0:'=',h1:'≠',tail:'two'}, '≠':{h0:'=',h1:'≠',tail:'two'},
+    '>':{h0:'≤',h1:'>',tail:'right'}, '<':{h0:'≥',h1:'<',tail:'left'},
+    '≥':{h0:'≥',h1:'<',tail:'left'}, '≤':{h0:'≤',h1:'>',tail:'right'}
+  };
+  const p = pairs[op];
+  const claimIsH1 = (op==='>'||op==='<'||op==='≠');
+  document.getElementById('hb-output').innerHTML = `
+    H₀ : ${sym} ${p.h0} ${esc(val)}${claimIsH1?'':'  (claim)'}<br>
+    H₁ : ${sym} ${p.h1} ${esc(val)}${claimIsH1?'  (claim)':''}
+    <div class="tail">${tailLabel(p.tail)} test — rejection region on the ${p.tail==='two'?'both sides':p.tail==='right'?'right side':'left side'}.</div>`;
+}
+function runWizard(){
+  const pop=document.getElementById('wiz-pop').value;
+  document.getElementById('wiz-eqvar-wrap').style.display = pop==='2' ? '' : 'none';
+  const sigma=document.getElementById('wiz-sigma').value;
+  let rec, why, target;
+  if(pop==='1'){
+    if(sigma==='known'){ rec='One-sample Z test'; why='One population, and σ is known — use the standard normal (z) test statistic.'; target='sec3'; }
+    else { rec='One-sample T test'; why='One population, σ unknown — estimate it with s and use the t distribution with n−1 degrees of freedom.'; target='sec3'; }
+  } else {
+    if(sigma==='known'){ rec='Two-sample Z test (known variances)'; why='Two populations with known σ₁ and σ₂ — use the z test statistic for μ₁−μ₂.'; target='sec5'; }
+    else {
+      const eq=document.getElementById('wiz-eqvar').value;
+      if(eq==='equal'){ rec='Two-sample pooled-variance T test'; why='σ unknown for both populations, assumed equal — pool the variances and use t with n₁+n₂−2 degrees of freedom.'; target='sec5'; }
+      else { rec="Two-sample Welch's T test"; why='σ unknown for both populations, assumed unequal — use the Welch–Satterthwaite approximate degrees of freedom.'; target='sec5'; }
+    }
+  }
+  const out=document.getElementById('wiz-output');
+  out.style.display='';
+  out.innerHTML = `Recommended procedure:<br><b style="color:#9FD8D3">${rec}</b>
+    <div class="tail">${why}</div>
+    <div class="tail">Open in: <a href="#" style="color:#9FD8D3" onclick="document.querySelector('[data-target=${target}]').click();return false;">${target==='sec3'?'1 Population Mean':'2 Population Means'} section</a></div>`;
+}
+
+/* ============================================================
+   SECTION 2: Confidence interval calculators
+   ============================================================ */
+let ciTab='one', ci1Case='known', ci1Mode='summary', ci2Case='known', ci2Mode='summary';
+function setCITab(t){
+  ciTab=t;
+  document.getElementById('ci-one').style.display = t==='one'?'':'none';
+  document.getElementById('ci-two').style.display = t==='two'?'':'none';
+  document.querySelectorAll('#sec2 > .card > .subtabs')[0].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='one')||(i===1&&t==='two')));
+}
+function setCICase(c){
+  ci1Case=c;
+  document.getElementById('ci1-sigma-wrap').style.display = c==='known'?'':'none';
+  document.getElementById('ci1-s-wrap').style.display = c==='unknown'?'':'none';
+  document.querySelectorAll('#ci-one .subtabs')[0].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', (i===0&&c==='known')||(i===1&&c==='unknown')));
+}
+function setCI1Mode(m){
+  ci1Mode=m;
+  document.getElementById('ci1-raw-wrap').style.display = m==='raw' ? '' : 'none';
+  document.getElementById('ci1-mode-summary').classList.toggle('active', m==='summary');
+  document.getElementById('ci1-mode-raw').classList.toggle('active', m==='raw');
+}
+function applyRawCI1(){
+  const arr = parseRawData(document.getElementById('ci1-raw').value);
+  const s = summarizeRaw(arr);
+  if(!s){ alert('Enter at least two valid numeric values.'); return; }
+  setVal('ci1-xbar', s.mean.toFixed(6));
+  setVal('ci1-s', s.sd.toFixed(6));
+  setVal('ci1-n', s.n);
+  setCICase('unknown');
+  alert(`Raw data summarized: n=${s.n}, x̄=${s.mean.toFixed(4)}, s=${s.sd.toFixed(4)}`);
+}
+function resetCI1(){
+  ['ci1-xbar','ci1-sigma','ci1-s','ci1-n','ci1-mu0','ci1-alpha-custom','ci1-raw'].forEach(id=>setVal(id,''));
+  document.getElementById('ci1-result').innerHTML='';
+}
+function calcCI1(){
+  const xbar=num('ci1-xbar'), n=num('ci1-n');
+  const alpha=getAlpha('ci1');
+  const mu0raw=document.getElementById('ci1-mu0').value;
+  const mu0 = mu0raw===''? null : parseFloat(mu0raw);
+  const out=document.getElementById('ci1-result');
+  if(!Number.isFinite(xbar)) return out.innerHTML=validationError('Enter a valid sample mean x̄.');
+  if(!Number.isFinite(n)||n<=1) return out.innerHTML=validationError('Sample size n must be a number greater than 1.');
+  if(!checkAlpha(alpha)) return out.innerHTML=validationError('Significance level α must be between 0 and 1.');
+
+  let se, crit, label, dfTxt='';
+  if(ci1Case==='known'){
+    const sigma=num('ci1-sigma');
+    if(!Number.isFinite(sigma)||sigma<0) return out.innerHTML=validationError('Population σ must be a non-negative number.');
+    se = sigma/Math.sqrt(n);
+    crit = zCritical(alpha,'two');
+    label = `z_(α/2) = ${fmt(crit)}`;
+  } else {
+    const s=num('ci1-s');
+    if(!Number.isFinite(s)||s<0) return out.innerHTML=validationError('Sample s must be a non-negative number.');
+    const df=n-1;
+    se = s/Math.sqrt(n);
+    crit = tCritical(alpha,df,'two');
+    label = `t_(α/2, ${df}) = ${fmt(crit)}`;
+    dfTxt = `<div class="kv"><span>Degrees of freedom: <b>DF = n − 1 = ${n-1}</b></span></div>`;
+  }
+  const moe = crit*se;
+  const lo=xbar-moe, hi=xbar+moe;
+  let decisionHtml='', concl='';
+  if(mu0!==null && Number.isFinite(mu0)){
+    const inside = mu0>=lo && mu0<=hi;
+    decisionHtml = `<div class="conclusion-box ${inside?'keep':'reject'}">
+      <b>Compare:</b> μ₀ = ${fmt(mu0)} is ${inside?'INSIDE':'OUTSIDE'} the confidence interval (${fmt(lo)}, ${fmt(hi)}).<br>
+      <b>Decision:</b> <span class="badge ${inside?'keep':'reject'}">${inside?'Do not reject H₀':'Reject H₀'}</span></div>`;
+    concl = `At the ${(alpha*100).toFixed(0)}% significance level, there is ${inside?'insufficient':'sufficient'} statistical evidence to reject H₀: μ = ${fmt(mu0)}.`;
+  }
+  const barPos = (v)=> Math.max(0,Math.min(100, ((v-(lo-moe*0.6))/((hi+moe*0.6)-(lo-moe*0.6)))*100 ));
+  const bodyHtml = `
+    <div class="result-card">
+      <div class="result-head">${(1-alpha)*100}% Confidence Interval — One Population Mean (${ci1Case==='known'?'σ known':'σ unknown'})</div>
+      <div class="result-body">
+        <div class="step learning-only"><h4>Step 1 — Identify information</h4>
+          <div class="kv"><span>x̄ = <b>${fmt(xbar)}</b></span><span>n = <b>${n}</b></span><span>α = <b>${alpha}</b></span>${mu0!==null?`<span>μ₀ = <b>${fmt(mu0)}</b></span>`:''}</div>
+        </div>
+        ${dfTxt?`<div class="step learning-only"><h4>Step 2 — Degrees of freedom</h4>${dfTxt}</div>`:''}
+        <div class="step"><h4>Standard Error (SE)</h4>
+          <span class="formula-line">${ci1Case==='known'?'SE = σ / √n':'SE = s / √n'} = ${fmt(se)}</span>
+        </div>
+        <div class="step"><h4>Critical value</h4><div class="kv"><span><b>${label}</b></span></div></div>
+        <div class="step"><h4>Margin of error &amp; interval</h4>
+          <span class="formula-line">Margin of Error = ${ci1Case==='known'?'z(α/2)':'t(α/2,n−1)'} × SE = ${fmt(moe)}</span>
+          <div class="kv"><span>Lower limit = <b>${fmt(lo)}</b></span><span>Upper limit = <b>${fmt(hi)}</b></span></div>
+          <div class="kv"><span>${(1-alpha)*100}% CI = <b>(${fmt(lo)}, ${fmt(hi)})</b></span></div>
+        </div>
+        ${mu0!==null?`<div class="step"><h4>Decision &amp; conclusion</h4>${decisionHtml}<div class="conclusion-box">${concl}</div></div>`:''}
+      </div>
+    </div>`;
+  out.innerHTML = bodyHtml;
+  setReport(`Confidence Interval — One Population Mean`,
+    `<div class="kv"><span>x̄=${fmt(xbar)}</span><span>n=${n}</span><span>α=${alpha}</span><span>${(1-alpha)*100}% CI = (${fmt(lo)}, ${fmt(hi)})</span></div>${mu0!==null?`<div class="conclusion-box">${concl}</div>`:''}`,
+    `CONFIDENCE INTERVAL — ONE POPULATION MEAN\nx̄=${fmt(xbar)}, n=${n}, α=${alpha}, SE=${fmt(se)}\n${(1-alpha)*100}% CI = (${fmt(lo)}, ${fmt(hi)})\n${mu0!==null?concl:''}`);
+}
+
+function setCI2Case(c){
+  ci2Case=c;
+  const knownWrap1=document.getElementById('ci2-sigma1-wrap'), knownWrap2=document.getElementById('ci2-sigma2-wrap');
+  const sWrap1=document.getElementById('ci2-s1-wrap'), sWrap2=document.getElementById('ci2-s2-wrap');
+  knownWrap1.style.display = c==='known'?'':'none';
+  knownWrap2.style.display = c==='known'?'':'none';
+  sWrap1.style.display = c==='known'?'none':'';
+  sWrap2.style.display = c==='known'?'none':'';
+  document.getElementById('ci2-assump-var').textContent = c==='known'?'Population variances known':(c==='equal'?'Equal population variances assumed':'Unequal population variances assumed (Welch)');
+  document.querySelectorAll('#ci-two .subtabs')[0].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', ['known','equal','welch'][i]===c));
+}
+function setCI2Mode(m){
+  ci2Mode=m;
+  document.getElementById('ci2-raw-wrap').style.display = m==='raw'?'':'none';
+  document.getElementById('ci2-mode-summary').classList.toggle('active', m==='summary');
+  document.getElementById('ci2-mode-raw').classList.toggle('active', m==='raw');
+}
+function applyRawCI2(){
+  const a1=parseRawData(document.getElementById('ci2-raw1').value);
+  const a2=parseRawData(document.getElementById('ci2-raw2').value);
+  const s1=summarizeRaw(a1), s2=summarizeRaw(a2);
+  if(!s1||!s2){ alert('Enter at least two valid numeric values for each population.'); return; }
+  setVal('ci2-xbar1',s1.mean.toFixed(6)); setVal('ci2-s1',s1.sd.toFixed(6)); setVal('ci2-n1',s1.n);
+  setVal('ci2-xbar2',s2.mean.toFixed(6)); setVal('ci2-s2',s2.sd.toFixed(6)); setVal('ci2-n2',s2.n);
+  if(ci2Case==='known') setCI2Case('equal');
+  alert('Raw data summarized for both populations.');
+}
+function resetCI2(){
+  ['ci2-xbar1','ci2-sigma1','ci2-s1','ci2-n1','ci2-xbar2','ci2-sigma2','ci2-s2','ci2-n2','ci2-mu0','ci2-alpha-custom','ci2-raw1','ci2-raw2'].forEach(id=>setVal(id,''));
+  document.getElementById('ci2-result').innerHTML='';
+}
+function calcCI2(){
+  const xbar1=num('ci2-xbar1'), n1=num('ci2-n1'), xbar2=num('ci2-xbar2'), n2=num('ci2-n2');
+  const alpha=getAlpha('ci2');
+  const mu0raw=document.getElementById('ci2-mu0').value;
+  const mu0 = mu0raw===''?0:parseFloat(mu0raw);
+  const out=document.getElementById('ci2-result');
+  if(![xbar1,n1,xbar2,n2].every(Number.isFinite) || n1<=1 || n2<=1) return out.innerHTML=validationError('Enter valid sample means and sample sizes (n > 1) for both populations.');
+  if(!checkAlpha(alpha)) return out.innerHTML=validationError('Significance level α must be between 0 and 1.');
+
+  let se, crit, label, extraSteps='';
+  const diff = xbar1-xbar2;
+  if(ci2Case==='known'){
+    const sigma1=num('ci2-sigma1'), sigma2=num('ci2-sigma2');
+    if(!Number.isFinite(sigma1)||!Number.isFinite(sigma2)||sigma1<0||sigma2<0) return out.innerHTML=validationError('Enter valid non-negative population standard deviations σ₁ and σ₂.');
+    se=Math.sqrt(sigma1*sigma1/n1+sigma2*sigma2/n2);
+    crit=zCritical(alpha,'two');
+    label=`z_(α/2) = ${fmt(crit)}`;
+  } else if(ci2Case==='equal'){
+    const s1=num('ci2-s1'), s2=num('ci2-s2');
+    if(!Number.isFinite(s1)||!Number.isFinite(s2)||s1<0||s2<0) return out.innerHTML=validationError('Enter valid non-negative sample standard deviations s₁ and s₂.');
+    const pooledVar=calculatePooledVariance(n1,s1,n2,s2);
+    const sp=Math.sqrt(pooledVar);
+    const df=n1+n2-2;
+    se=sp*Math.sqrt(1/n1+1/n2);
+    crit=tCritical(alpha,df,'two');
+    label=`t_(α/2, ${df}) = ${fmt(crit)}`;
+    extraSteps = `<div class="step learning-only"><h4>Pooled variance</h4>
+      <span class="formula-line">s_p² = [(n₁−1)s₁² + (n₂−1)s₂²] / (n₁+n₂−2) = ${fmt(pooledVar)}</span>
+      <span class="formula-line">s_p = √s_p² = ${fmt(sp)}</span>
+      <div class="kv"><span>Degrees of freedom: <b>DF = n₁+n₂−2 = ${df}</b></span></div></div>`;
+  } else {
+    const s1=num('ci2-s1'), s2=num('ci2-s2');
+    if(!Number.isFinite(s1)||!Number.isFinite(s2)||s1<0||s2<0) return out.innerHTML=validationError('Enter valid non-negative sample standard deviations s₁ and s₂.');
+    const df=calculateWelchDegreesOfFreedom(s1,n1,s2,n2);
+    se=Math.sqrt(s1*s1/n1+s2*s2/n2);
+    crit=tCritical(alpha,df,'two');
+    label=`t_(α/2, ν=${df}) = ${fmt(crit)}`;
+    extraSteps = `<div class="step learning-only"><h4>Welch–Satterthwaite degrees of freedom</h4>
+      <span class="formula-line">ν = (s₁²/n₁ + s₂²/n₂)² / [ (s₁²/n₁)²/(n₁−1) + (s₂²/n₂)²/(n₂−1) ] = ${((s1*s1/n1+s2*s2/n2)**2/(((s1*s1/n1)**2/(n1-1))+((s2*s2/n2)**2/(n2-1)))).toFixed(4)}</span>
+      <div class="kv"><span>ν rounded down: <b>${df}</b></span></div></div>`;
+  }
+  const moe=crit*se;
+  const lo=diff-moe, hi=diff+moe;
+  const inside = mu0>=lo && mu0<=hi;
+  const decisionHtml = `<div class="conclusion-box ${inside?'keep':'reject'}">
+    <b>Compare:</b> hypothesized μ₁−μ₂ = ${fmt(mu0)} is ${inside?'INSIDE':'OUTSIDE'} the confidence interval (${fmt(lo)}, ${fmt(hi)}).<br>
+    <b>Decision:</b> <span class="badge ${inside?'keep':'reject'}">${inside?'Do not reject H₀':'Reject H₀'}</span></div>`;
+  const concl = `At the ${(alpha*100).toFixed(0)}% significance level, the data provide ${inside?'insufficient':'sufficient'} evidence that μ₁−μ₂ differs from ${fmt(mu0)}.`;
+  out.innerHTML = `<div class="result-card">
+    <div class="result-head">${(1-alpha)*100}% Confidence Interval — Difference Between Two Means (${ci2Case==='known'?'known variances':ci2Case==='equal'?'equal variances':'unequal variances, Welch'})</div>
+    <div class="result-body">
+      <div class="step learning-only"><h4>Step 1 — Identify information</h4>
+        <div class="kv"><span>x̄₁=<b>${fmt(xbar1)}</b></span><span>n₁=<b>${n1}</b></span><span>x̄₂=<b>${fmt(xbar2)}</b></span><span>n₂=<b>${n2}</b></span><span>α=<b>${alpha}</b></span></div>
+      </div>
+      ${extraSteps}
+      <div class="step"><h4>Difference in sample means</h4><span class="formula-line">x̄₁ − x̄₂ = ${fmt(diff)}</span></div>
+      <div class="step"><h4>Standard Error (SE)</h4>
+        <span class="formula-line">${ci2Case==='known'?'SE = √(σ₁²/n₁ + σ₂²/n₂)':ci2Case==='equal'?'SE = s_p √(1/n₁ + 1/n₂)':'SE = √(s₁²/n₁ + s₂²/n₂)'} = ${fmt(se)}</span></div>
+      <div class="step"><h4>Critical value &amp; interval</h4><div class="kv"><span><b>${label}</b></span></div>
+        <span class="formula-line">Margin of Error = ${fmt(moe)}</span>
+        <div class="kv"><span>Lower limit=<b>${fmt(lo)}</b></span><span>Upper limit=<b>${fmt(hi)}</b></span></div>
+        <div class="kv"><span>${(1-alpha)*100}% CI = <b>(${fmt(lo)}, ${fmt(hi)})</b></span></div></div>
+      <div class="step"><h4>Decision &amp; conclusion</h4>${decisionHtml}<div class="conclusion-box">${concl}</div></div>
+    </div></div>`;
+  setReport('Confidence Interval — Difference Between Two Means',
+    `<div class="kv"><span>x̄₁−x̄₂=${fmt(diff)}</span><span>${(1-alpha)*100}% CI=(${fmt(lo)}, ${fmt(hi)})</span></div><div class="conclusion-box">${concl}</div>`,
+    `CONFIDENCE INTERVAL — DIFFERENCE OF TWO MEANS\nx̄₁−x̄₂=${fmt(diff)}, SE=${fmt(se)}\n${(1-alpha)*100}% CI = (${fmt(lo)}, ${fmt(hi)})\n${concl}`);
+}
+
+/* ============================================================
+   SECTION 3: 1 Population Mean hypothesis test
+   ============================================================ */
+let t1Case='known', t1Tail='two', t1Mode='summary';
+function setT1Case(c){
+  t1Case=c;
+  document.getElementById('t1-sigma-wrap').style.display = c==='known'?'':'none';
+  document.getElementById('t1-s-wrap').style.display = c==='known'?'none':'';
+  document.querySelectorAll('#sec3 .subtabs')[0].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',(i===0&&c==='known')||(i===1&&c==='unknown')));
+}
+function setT1Tail(t){
+  t1Tail=t;
+  document.querySelectorAll('#sec3 .subtabs')[1].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', ['two','right','left'][i]===t));
+}
+function setT1Mode(m){
+  t1Mode=m;
+  document.getElementById('t1-raw-wrap').style.display = m==='raw'?'':'none';
+  document.getElementById('t1-mode-summary').classList.toggle('active', m==='summary');
+  document.getElementById('t1-mode-raw').classList.toggle('active', m==='raw');
+}
+function applyRawT1(){
+  const arr=parseRawData(document.getElementById('t1-raw').value);
+  const s=summarizeRaw(arr);
+  if(!s){ alert('Enter at least two valid numeric values.'); return; }
+  setVal('t1-xbar', s.mean.toFixed(6)); setVal('t1-s', s.sd.toFixed(6)); setVal('t1-n', s.n);
+  setT1Case('unknown');
+  alert(`Raw data summarized: n=${s.n}, x̄=${s.mean.toFixed(4)}, s=${s.sd.toFixed(4)}`);
+}
+function resetT1(){
+  ['t1-xbar','t1-mu0','t1-sigma','t1-s','t1-n','t1-alpha-custom','t1-units','t1-raw'].forEach(id=>setVal(id,''));
+  document.getElementById('t1-result').innerHTML='';
+}
+function hyp1Text(tail,sym,mu0){
+  if(tail==='two') return {h0:`${sym} = ${mu0}`, h1:`${sym} ≠ ${mu0}`};
+  if(tail==='right') return {h0:`${sym} ≤ ${mu0}`, h1:`${sym} > ${mu0}`};
+  return {h0:`${sym} ≥ ${mu0}`, h1:`${sym} < ${mu0}`};
+}
+function rejectsCritical(stat,tail,crit){
+  if(tail==='two') return Math.abs(stat) > crit;
+  if(tail==='right') return stat > crit;
+  return stat < crit;
+}
+function calcT1(){
+  const xbar=num('t1-xbar'), mu0=num('t1-mu0'), n=num('t1-n');
+  const alpha=getAlpha('t1');
+  const units=document.getElementById('t1-units').value.trim();
+  const out=document.getElementById('t1-result');
+  if(!Number.isFinite(xbar)||!Number.isFinite(mu0)) return out.innerHTML=validationError('Enter a valid sample mean x̄ and hypothesized μ₀.');
+  if(!Number.isFinite(n)||n<=1) return out.innerHTML=validationError('Sample size n must be a number greater than 1.');
+  if(!checkAlpha(alpha)) return out.innerHTML=validationError('Significance level α must be between 0 and 1.');
+  const hyp=hyp1Text(t1Tail,'μ',mu0);
+
+  let se,stat,crit,df=null,kind,seFormula;
+  if(t1Case==='known'){
+    const sigma=num('t1-sigma');
+    if(!Number.isFinite(sigma)||sigma<0) return out.innerHTML=validationError('Population σ must be a non-negative number.');
+    se=sigma/Math.sqrt(n); stat=(xbar-mu0)/se; crit=zCritical(alpha,t1Tail); kind='z';
+    seFormula=`SE = σ/√n = ${fmt(se)}`;
+  } else {
+    const s=num('t1-s');
+    if(!Number.isFinite(s)||s<0) return out.innerHTML=validationError('Sample s must be a non-negative number.');
+    df=n-1; se=s/Math.sqrt(n); stat=(xbar-mu0)/se; crit=tCritical(alpha,df,t1Tail); kind='t';
+    seFormula=`SE = s/√n = ${fmt(se)}`;
+  }
+  const reject = rejectsCritical(stat,t1Tail,crit);
+  const pval = kind==='z' ? pValueZ(stat,t1Tail) : pValueT(stat,df,t1Tail);
+  const critArr = t1Tail==='two' ? [crit] : [crit];
+  const graph = distGraphSVG(kind, df||30, t1Tail, critArr.length===1&&t1Tail==='two'?crit:crit, stat);
+  const rr = t1Tail==='two' ? `|test statistic| > ${fmt(crit)}` : t1Tail==='right' ? `test statistic > ${fmt(crit)}` : `test statistic < ${fmt(crit)}`;
+  const unitTxt = units? ' '+units : '';
+  const concl = reject
+    ? `At the ${(alpha*100).toFixed(0)}% significance level, there is sufficient statistical evidence to support the claim that ${hyp1Text(t1Tail,'the population mean',mu0).h1.replace('the population mean','')}${unitTxt}.`
+    : `At the ${(alpha*100).toFixed(0)}% significance level, there is insufficient statistical evidence to support the claim; do not reject H₀.`;
+
+  out.innerHTML = `<div class="result-card">
+    <div class="result-head">One-Sample ${kind.toUpperCase()} Test — ${tailLabel(t1Tail)} (${t1Case==='known'?'σ known':'σ unknown'})</div>
+    <div class="result-body">
+      <div class="step"><h4>Step 1 — Hypotheses</h4>
+        <div class="kv"><span>H₀ : <b>${hyp.h0}</b></span><span>H₁ : <b>${hyp.h1}</b></span></div></div>
+      <div class="step learning-only"><h4>Identify information</h4>
+        <div class="kv"><span>x̄=<b>${fmt(xbar)}</b></span><span>μ₀=<b>${fmt(mu0)}</b></span><span>n=<b>${n}</b></span><span>α=<b>${alpha}</b></span>${df!==null?`<span>DF=<b>${df}</b></span>`:''}</div></div>
+      ${df!==null?`<div class="step learning-only"><h4>Degrees of freedom</h4><span class="formula-line">DF = n − 1 = ${df}</span></div>`:''}
+      <div class="step"><h4>Standard Error (SE)</h4><span class="formula-line">${seFormula}</span></div>
+      <div class="step"><h4>Step 2 — Test statistic</h4>
+        <span class="formula-line">${kind}_test = (x̄ − μ₀) / SE = (${fmt(xbar)} − ${fmt(mu0)}) / ${fmt(se)} = <b>${fmt(stat)}</b></span></div>
+      <div class="step"><h4>Step 3 — Critical value &amp; rejection region</h4>
+        <div class="kv"><span>Critical value = <b>${fmt(crit)}</b></span><span>Rejection region: <b>${rr}</b></span></div>
+        <div class="graph-wrap">${graph}</div></div>
+      <div class="step learning-only"><h4>P-value (for reference)</h4><span class="formula-line">P-value = ${fmt(pval)}</span></div>
+      <div class="step"><h4>Step 4 — Decision</h4>
+        <div class="conclusion-box ${reject?'reject':'keep'}"><span class="badge ${reject?'reject':'keep'}">${reject?'Reject H₀':'Do not reject H₀'}</span> — ${kind}_test ${reject?'falls in':'does not fall in'} the rejection region.</div></div>
+      <div class="step"><h4>Step 5 — Conclusion</h4><div class="conclusion-box">${concl}</div></div>
+    </div></div>`;
+  setReport(`One-Sample ${kind.toUpperCase()} Test (${tailLabel(t1Tail)})`,
+    `<div class="kv"><span>H₀: ${hyp.h0}</span><span>H₁: ${hyp.h1}</span><span>stat=${fmt(stat)}</span><span>crit=${fmt(crit)}</span><span>P=${fmt(pval)}</span></div>
+     <div class="conclusion-box ${reject?'reject':'keep'}"><b>${reject?'Reject H₀':'Do not reject H₀'}</b></div><div class="conclusion-box">${concl}</div>`,
+    `ONE-SAMPLE ${kind.toUpperCase()} TEST\nH0: ${hyp.h0}\nH1: ${hyp.h1}\nx̄=${fmt(xbar)} μ0=${fmt(mu0)} n=${n} α=${alpha}\nSE=${fmt(se)}\nTest statistic=${fmt(stat)}\nCritical value=${fmt(crit)}\nP-value=${fmt(pval)}\nDecision: ${reject?'Reject H0':'Do not reject H0'}\n${concl}`);
+}
+
+/* ============================================================
+   SECTION 4: P-value method
+   ============================================================ */
+let pvTest='z', pvTail='two', pvMode='stat';
+function setPVTest(t){
+  pvTest=t;
+  document.getElementById('pv-df-wrap').style.display = t==='t'?'':'none';
+  document.getElementById('pv-sigma-wrap').style.display = t==='z'?'':'none';
+  document.getElementById('pv-s-wrap').style.display = t==='t'?'':'none';
+  document.getElementById('pv-stat-label').textContent = `Test statistic (${t})`;
+  document.querySelectorAll('#sec4 .subtabs')[0].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='z')||(i===1&&t==='t')));
+}
+function setPVTail(t){
+  pvTail=t;
+  document.querySelectorAll('#sec4 .subtabs')[1].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', ['two','right','left'][i]===t));
+}
+function setPVMode(m){
+  pvMode=m;
+  document.getElementById('pv-stat-wrap').style.display = m==='stat'?'':'none';
+  document.getElementById('pv-raw-wrap').style.display = m==='raw'?'':'none';
+  document.getElementById('pv-mode-stat').classList.toggle('active', m==='stat');
+  document.getElementById('pv-mode-raw').classList.toggle('active', m==='raw');
+}
+function resetPV(){
+  ['pv-stat','pv-df','pv-xbar','pv-mu0','pv-sigma','pv-s','pv-n','pv-alpha-custom'].forEach(id=>setVal(id,''));
+  document.getElementById('pv-result').innerHTML='';
+}
+function calcPV(){
+  const alpha=getAlpha('pv');
+  const out=document.getElementById('pv-result');
+  if(!checkAlpha(alpha)) return out.innerHTML=validationError('Significance level α must be between 0 and 1.');
+  let stat, df=null, seLine='';
+  if(pvMode==='stat'){
+    stat=num('pv-stat');
+    if(!Number.isFinite(stat)) return out.innerHTML=validationError('Enter a valid test statistic.');
+    if(pvTest==='t'){ df=num('pv-df'); if(!Number.isFinite(df)||df<1) return out.innerHTML=validationError('Enter valid degrees of freedom (≥ 1).'); }
+  } else {
+    const xbar=num('pv-xbar'), mu0=num('pv-mu0'), n=num('pv-n');
+    if(!Number.isFinite(xbar)||!Number.isFinite(mu0)||!Number.isFinite(n)||n<=1) return out.innerHTML=validationError('Enter valid x̄, μ₀ and n (n > 1).');
+    if(pvTest==='z'){
+      const sigma=num('pv-sigma'); if(!Number.isFinite(sigma)||sigma<0) return out.innerHTML=validationError('Enter a valid non-negative σ.');
+      const se=sigma/Math.sqrt(n); stat=(xbar-mu0)/se; seLine=`<span class="formula-line">SE = σ/√n = ${fmt(se)}</span>`;
+    } else {
+      const s=num('pv-s'); if(!Number.isFinite(s)||s<0) return out.innerHTML=validationError('Enter a valid non-negative s.');
+      df=n-1; const se=s/Math.sqrt(n); stat=(xbar-mu0)/se; seLine=`<span class="formula-line">SE = s/√n = ${fmt(se)}</span>`;
+    }
+  }
+  const pval = pvTest==='z' ? pValueZ(stat,pvTail) : pValueT(stat,df,pvTail);
+  const reject = pval<=alpha;
+  const graphCrit = pvTest==='z' ? zCritical(alpha,pvTail) : tCritical(alpha,df,pvTail);
+  const graph = distGraphSVG(pvTest, df||30, pvTail, graphCrit, stat);
+  const concl = reject
+    ? `Since P-value (${fmt(pval)}) ≤ α (${alpha}), reject H₀. There is sufficient statistical evidence to support the alternative claim at the ${(alpha*100).toFixed(0)}% significance level.`
+    : `Since P-value (${fmt(pval)}) > α (${alpha}), do not reject H₀. There is insufficient statistical evidence to support the alternative claim at the ${(alpha*100).toFixed(0)}% significance level.`;
+  out.innerHTML = `<div class="result-card">
+    <div class="result-head">P-value Method — ${pvTest.toUpperCase()} test, ${tailLabel(pvTail)}</div>
+    <div class="result-body">
+      ${seLine?`<div class="step learning-only"><h4>Standard error</h4>${seLine}</div>`:''}
+      <div class="step"><h4>Step 2 — Test statistic</h4><div class="kv"><span>${pvTest}_test = <b>${fmt(stat)}</b></span>${df!==null?`<span>DF=<b>${df}</b></span>`:''}</div></div>
+      <div class="step"><h4>Step 3 — P-value</h4>
+        <span class="formula-line">${pvTail==='two'?'P-value = 2 × min tail area':'P-value = tail area beyond test statistic'} = <b>${fmt(pval)}</b></span>
+        <div class="graph-wrap">${graph}</div></div>
+      <div class="step"><h4>Step 4 — Compare P-value with α</h4>
+        <div class="kv"><span>P-value = <b>${fmt(pval)}</b></span><span>α = <b>${alpha}</b></span></div>
+        <div class="conclusion-box ${reject?'reject':'keep'}"><span class="badge ${reject?'reject':'keep'}">${reject?'Reject H₀':'Do not reject H₀'}</span></div></div>
+      <div class="step"><h4>Step 5 — Conclusion</h4><div class="conclusion-box">${concl}</div></div>
+    </div></div>`;
+  setReport(`P-value Method — ${pvTest.toUpperCase()} test`,
+    `<div class="kv"><span>stat=${fmt(stat)}</span><span>P=${fmt(pval)}</span><span>α=${alpha}</span></div><div class="conclusion-box ${reject?'reject':'keep'}"><b>${reject?'Reject H₀':'Do not reject H₀'}</b></div>`,
+    `P-VALUE METHOD (${pvTest.toUpperCase()})\nTest statistic=${fmt(stat)}\nP-value=${fmt(pval)}\nα=${alpha}\nDecision: ${reject?'Reject H0':'Do not reject H0'}\n${concl}`);
+}
+
+/* ============================================================
+   SECTION 5: 2 Population Means hypothesis test
+   ============================================================ */
+let t2Case='known', t2Tail='two', t2Mode='summary';
+function setT2Case(c){
+  t2Case=c;
+  document.getElementById('t2-sigma1-wrap').style.display = c==='known'?'':'none';
+  document.getElementById('t2-sigma2-wrap').style.display = c==='known'?'':'none';
+  document.getElementById('t2-s1-wrap').style.display = c==='known'?'none':'';
+  document.getElementById('t2-s2-wrap').style.display = c==='known'?'none':'';
+  document.getElementById('t2-assump-var').textContent = c==='known'?'Population variances known':(c==='equal'?'Equal population variances assumed':'Unequal population variances assumed (Welch)');
+  document.querySelectorAll('#sec5 .subtabs')[0].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', ['known','equal','welch'][i]===c));
+}
+function setT2Tail(t){
+  t2Tail=t;
+  document.querySelectorAll('#sec5 .subtabs')[1].querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active', ['two','right','left'][i]===t));
+}
+function setT2Mode(m){
+  t2Mode=m;
+  document.getElementById('t2-raw-wrap').style.display = m==='raw'?'':'none';
+  document.getElementById('t2-mode-summary').classList.toggle('active', m==='summary');
+  document.getElementById('t2-mode-raw').classList.toggle('active', m==='raw');
+}
+function applyRawT2(){
+  const a1=parseRawData(document.getElementById('t2-raw1').value);
+  const a2=parseRawData(document.getElementById('t2-raw2').value);
+  const s1=summarizeRaw(a1), s2=summarizeRaw(a2);
+  if(!s1||!s2){ alert('Enter at least two valid numeric values for each population.'); return; }
+  setVal('t2-xbar1',s1.mean.toFixed(6)); setVal('t2-s1',s1.sd.toFixed(6)); setVal('t2-n1',s1.n);
+  setVal('t2-xbar2',s2.mean.toFixed(6)); setVal('t2-s2',s2.sd.toFixed(6)); setVal('t2-n2',s2.n);
+  if(t2Case==='known') setT2Case('equal');
+  alert('Raw data summarized for both populations.');
+}
+function resetT2(){
+  ['t2-xbar1','t2-sigma1','t2-s1','t2-n1','t2-xbar2','t2-sigma2','t2-s2','t2-n2','t2-mu0','t2-alpha-custom','t2-raw1','t2-raw2'].forEach(id=>setVal(id,''));
+  document.getElementById('t2-result').innerHTML='';
+}
+function calcT2(){
+  const xbar1=num('t2-xbar1'), n1=num('t2-n1'), xbar2=num('t2-xbar2'), n2=num('t2-n2');
+  const mu0raw=document.getElementById('t2-mu0').value;
+  const mu0 = mu0raw===''?0:parseFloat(mu0raw);
+  const alpha=getAlpha('t2');
+  const out=document.getElementById('t2-result');
+  if(![xbar1,n1,xbar2,n2].every(Number.isFinite)||n1<=1||n2<=1) return out.innerHTML=validationError('Enter valid sample means and sample sizes (n > 1) for both populations.');
+  if(!checkAlpha(alpha)) return out.innerHTML=validationError('Significance level α must be between 0 and 1.');
+  const hyp = hyp1Text(t2Tail,'μ₁ − μ₂',mu0);
+  const diff = xbar1-xbar2;
+
+  let se,stat,crit,df=null,kind,seFormula,extraSteps='';
+  if(t2Case==='known'){
+    const sigma1=num('t2-sigma1'), sigma2=num('t2-sigma2');
+    if(!Number.isFinite(sigma1)||!Number.isFinite(sigma2)||sigma1<0||sigma2<0) return out.innerHTML=validationError('Enter valid non-negative σ₁ and σ₂.');
+    se=Math.sqrt(sigma1*sigma1/n1+sigma2*sigma2/n2); kind='z';
+    seFormula=`SE = √(σ₁²/n₁ + σ₂²/n₂) = ${fmt(se)}`;
+    stat=((diff)-mu0)/se; crit=zCritical(alpha,t2Tail);
+  } else if(t2Case==='equal'){
+    const s1=num('t2-s1'), s2=num('t2-s2');
+    if(!Number.isFinite(s1)||!Number.isFinite(s2)||s1<0||s2<0) return out.innerHTML=validationError('Enter valid non-negative s₁ and s₂.');
+    const pooledVar=calculatePooledVariance(n1,s1,n2,s2); const sp=Math.sqrt(pooledVar);
+    df=n1+n2-2; se=sp*Math.sqrt(1/n1+1/n2); kind='t';
+    seFormula=`SE = s_p √(1/n₁ + 1/n₂) = ${fmt(se)}`;
+    stat=((diff)-mu0)/se; crit=tCritical(alpha,df,t2Tail);
+    extraSteps=`<div class="step learning-only"><h4>Pooled variance</h4>
+      <span class="formula-line">s_p² = [(n₁−1)s₁²+(n₂−1)s₂²]/(n₁+n₂−2) = ${fmt(pooledVar)}</span>
+      <span class="formula-line">s_p = ${fmt(sp)}</span>
+      <div class="kv"><span>DF = n₁+n₂−2 = ${df}</span></div></div>`;
+  } else {
+    const s1=num('t2-s1'), s2=num('t2-s2');
+    if(!Number.isFinite(s1)||!Number.isFinite(s2)||s1<0||s2<0) return out.innerHTML=validationError('Enter valid non-negative s₁ and s₂.');
+    df=calculateWelchDegreesOfFreedom(s1,n1,s2,n2);
+    se=Math.sqrt(s1*s1/n1+s2*s2/n2); kind='t';
+    seFormula=`SE = √(s₁²/n₁ + s₂²/n₂) = ${fmt(se)}`;
+    stat=((diff)-mu0)/se; crit=tCritical(alpha,df,t2Tail);
+    extraSteps=`<div class="step learning-only"><h4>Welch–Satterthwaite degrees of freedom</h4>
+      <span class="formula-line">ν = (s₁²/n₁+s₂²/n₂)² / [(s₁²/n₁)²/(n₁−1) + (s₂²/n₂)²/(n₂−1)]</span>
+      <div class="kv"><span>ν rounded down = <b>${df}</b></span></div></div>`;
+  }
+  const reject = rejectsCritical(stat,t2Tail,crit);
+  const pval = kind==='z' ? pValueZ(stat,t2Tail) : pValueT(stat,df,t2Tail);
+  const graph = distGraphSVG(kind, df||30, t2Tail, crit, stat);
+  const rr = t2Tail==='two' ? `|test statistic| > ${fmt(crit)}` : t2Tail==='right' ? `test statistic > ${fmt(crit)}` : `test statistic < ${fmt(crit)}`;
+  const concl = reject
+    ? `At the ${(alpha*100).toFixed(0)}% significance level, there is sufficient statistical evidence that μ₁ − μ₂ ${hyp.h1.split(' ').slice(-2).join(' ')}.`
+    : `At the ${(alpha*100).toFixed(0)}% significance level, there is insufficient statistical evidence to reject H₀; the two population means are not shown to differ as claimed.`;
+  out.innerHTML = `<div class="result-card">
+    <div class="result-head">Two-Sample ${kind.toUpperCase()} Test — ${tailLabel(t2Tail)} (${t2Case==='known'?'known variances':t2Case==='equal'?'equal variances':'unequal variances, Welch'})</div>
+    <div class="result-body">
+      <div class="step"><h4>Step 1 — Hypotheses</h4><div class="kv"><span>H₀ : <b>${hyp.h0}</b></span><span>H₁ : <b>${hyp.h1}</b></span></div></div>
+      <div class="step learning-only"><h4>Identify information</h4>
+        <div class="kv"><span>x̄₁=<b>${fmt(xbar1)}</b></span><span>n₁=<b>${n1}</b></span><span>x̄₂=<b>${fmt(xbar2)}</b></span><span>n₂=<b>${n2}</b></span><span>α=<b>${alpha}</b></span></div></div>
+      ${extraSteps}
+      <div class="step"><h4>Difference in sample means</h4><span class="formula-line">x̄₁ − x̄₂ = ${fmt(diff)}</span></div>
+      <div class="step"><h4>Standard Error (SE)</h4><span class="formula-line">${seFormula}</span></div>
+      <div class="step"><h4>Step 2 — Test statistic</h4>
+        <span class="formula-line">${kind}_test = [(x̄₁−x̄₂) − (μ₁−μ₂)] / SE = <b>${fmt(stat)}</b></span></div>
+      <div class="step"><h4>Step 3 — Critical value &amp; rejection region</h4>
+        <div class="kv"><span>Critical value=<b>${fmt(crit)}</b></span><span>Rejection region: <b>${rr}</b></span></div>
+        <div class="graph-wrap">${graph}</div></div>
+      <div class="step learning-only"><h4>P-value (for reference)</h4><span class="formula-line">P-value = ${fmt(pval)}</span></div>
+      <div class="step"><h4>Step 4 — Decision</h4>
+        <div class="conclusion-box ${reject?'reject':'keep'}"><span class="badge ${reject?'reject':'keep'}">${reject?'Reject H₀':'Do not reject H₀'}</span></div></div>
+      <div class="step"><h4>Step 5 — Conclusion</h4><div class="conclusion-box">${concl}</div></div>
+    </div></div>`;
+  setReport(`Two-Sample ${kind.toUpperCase()} Test (${tailLabel(t2Tail)})`,
+    `<div class="kv"><span>H₀: ${hyp.h0}</span><span>H₁: ${hyp.h1}</span><span>stat=${fmt(stat)}</span><span>crit=${fmt(crit)}</span><span>P=${fmt(pval)}</span></div>
+    <div class="conclusion-box ${reject?'reject':'keep'}"><b>${reject?'Reject H₀':'Do not reject H₀'}</b></div><div class="conclusion-box">${concl}</div>`,
+    `TWO-SAMPLE ${kind.toUpperCase()} TEST\nH0: ${hyp.h0}\nH1: ${hyp.h1}\nx̄1=${fmt(xbar1)} n1=${n1} x̄2=${fmt(xbar2)} n2=${n2} α=${alpha}\nSE=${fmt(se)}\nTest statistic=${fmt(stat)}\nCritical value=${fmt(crit)}\nP-value=${fmt(pval)}\nDecision: ${reject?'Reject H0':'Do not reject H0'}\n${concl}`);
+}
+
+/* ============================================================
+   Load-example buttons (hypothetical, illustrative data)
+   ============================================================ */
+function loadExampleCIBattery(){
+  setCITab('one'); setCICase('unknown'); setCI1Mode('summary');
+  setVal('ci1-xbar','13.2'); setVal('ci1-s','1.5'); setVal('ci1-n','36'); setVal('ci1-mu0','14');
+  document.getElementById('ci1-alpha').value='0.05';
+  document.querySelector('[data-target=sec2]').click();
+  calcCI1();
+}
+function loadExampleCIDelivery(){
+  setCITab('two'); setCI2Case('known'); setCI2Mode('summary');
+  setVal('ci2-xbar1','32.5'); setVal('ci2-sigma1','4'); setVal('ci2-n1','50');
+  setVal('ci2-xbar2','30.1'); setVal('ci2-sigma2','3.5'); setVal('ci2-n2','45');
+  setVal('ci2-mu0','0'); document.getElementById('ci2-alpha').value='0.05';
+  document.querySelector('[data-target=sec2]').click();
+  calcCI2();
+}
+function loadExampleCIExams(){
+  setCITab('two'); setCI2Mode('raw');
+  setVal('ci2-raw1','72,68,75,80,77,71,69,74,78,73,70,76');
+  setVal('ci2-raw2','65,70,62,68,72,60,66,69,64,67,58');
+  applyRawCI2();
+  setCI2Case('welch');
+  document.querySelector('[data-target=sec2]').click();
+  calcCI2();
+}
+function loadExampleReading(){
+  setT1Case('known'); setT1Tail('right'); setT1Mode('summary');
+  setVal('t1-xbar','249.5'); setVal('t1-mu0','240'); setVal('t1-sigma','30'); setVal('t1-n','36'); setVal('t1-units','words per minute');
+  document.getElementById('t1-alpha').value='0.05';
+  document.querySelector('[data-target=sec3]').click();
+  calcT1();
+}
+function loadExampleBulb(){
+  setT1Case('known'); setT1Tail('left'); setT1Mode('summary');
+  setVal('t1-xbar','785'); setVal('t1-mu0','800'); setVal('t1-sigma','40'); setVal('t1-n','36'); setVal('t1-units','hours');
+  document.getElementById('t1-alpha').value='0.01';
+  document.querySelector('[data-target=sec3]').click();
+  calcT1();
+}
+function loadExamplePickup(){
+  setT1Tail('left'); setT1Mode('raw');
+  setVal('t1-raw','5.2,6.1,5.5,5.9,5.3,5.8,6.0,5.4,5.7,5.1');
+  setVal('t1-mu0','6'); setVal('t1-units','minutes');
+  applyRawT1();
+  setVal('t1-alpha-custom','0.02');
+  document.getElementById('t1-alpha').value='custom';
+  document.getElementById('t1-alpha-custom-wrap').style.display='';
+  document.querySelector('[data-target=sec3]').click();
+  calcT1();
+}
+function loadExampleScreenTime(){
+  setT1Case('known'); setT1Tail('two'); setT1Mode('summary');
+  setVal('t1-xbar','8.1'); setVal('t1-mu0','7.5'); setVal('t1-sigma','2.1'); setVal('t1-n','49'); setVal('t1-units','hours');
+  document.getElementById('t1-alpha').value='0.05';
+  document.querySelector('[data-target=sec3]').click();
+  calcT1();
+}
+function loadExamplePackage(){
+  setPVTest('z'); setPVTail('left'); setPVMode('raw');
+  setVal('pv-xbar','497.6'); setVal('pv-mu0','500'); setVal('pv-sigma','8'); setVal('pv-n','40');
+  document.getElementById('pv-alpha').value='0.05';
+  document.querySelector('[data-target=sec4]').click();
+  calcPV();
+}
+function loadExamplePageLoad(){
+  setPVTest('t'); setPVTail('two'); setPVMode('raw');
+  setVal('pv-xbar','2.9'); setVal('pv-mu0','2.6'); setVal('pv-s','0.5'); setVal('pv-n','16');
+  document.getElementById('pv-alpha').value='0.05';
+  document.querySelector('[data-target=sec4]').click();
+  calcPV();
+}
+function loadExampleDelivery(){
+  setT2Case('known'); setT2Tail('two'); setT2Mode('summary');
+  setVal('t2-xbar1','32.5'); setVal('t2-sigma1','4'); setVal('t2-n1','50');
+  setVal('t2-xbar2','30.1'); setVal('t2-sigma2','3.5'); setVal('t2-n2','45');
+  setVal('t2-mu0','0'); document.getElementById('t2-alpha').value='0.05';
+  document.querySelector('[data-target=sec5]').click();
+  calcT2();
+}
+function loadExampleTraining(){
+  setT2Case('equal'); setT2Tail('right'); setT2Mode('summary');
+  setVal('t2-xbar1','78.4'); setVal('t2-s1','6.2'); setVal('t2-n1','25');
+  setVal('t2-xbar2','74.1'); setVal('t2-s2','6.8'); setVal('t2-n2','22');
+  setVal('t2-mu0','0'); document.getElementById('t2-alpha').value='0.05';
+  document.querySelector('[data-target=sec5]').click();
+  calcT2();
+}
+function loadExampleBatteryBrands(){
+  setT2Case('welch'); setT2Tail('two'); setT2Mode('raw');
+  setVal('t2-raw1','13.2,13.7,12.9,13.4,13.3,13.1,13.6,13.0,13.5,12.8');
+  setVal('t2-raw2','11.2,13.5,10.8,12.9,14.1,11.5,13.8,10.5,12.7,11.9,12.2,10.9');
+  applyRawT2(); setT2Case('welch');
+  setVal('t2-mu0','0'); document.getElementById('t2-alpha').value='0.05';
+  document.querySelector('[data-target=sec5]').click();
+  calcT2();
+}
+
+/* ============================================================
+   SECTION 6: Glossary
+   ============================================================ */
+const GLOSSARY = [
+  ['Population','The complete group of individuals or items that a study is interested in.'],
+  ['Sample','A subset of the population that is actually observed and measured.'],
+  ['Parameter','A numerical summary that describes a population, e.g. μ or σ.'],
+  ['Statistic','A numerical summary computed from sample data, e.g. x̄ or s.'],
+  ['Statistical hypothesis','A claim about a parameter of one or more populations that can be tested with data.'],
+  ['Null hypothesis (H₀)','The default claim; it always contains an equality and is kept unless the sample gives strong evidence against it.'],
+  ['Alternative hypothesis (H₁)','The competing claim, supported only when H₀ is rejected; it reflects what the test is trying to detect.'],
+  ['Claim','The statement under investigation; depending on its wording it may be H₀ or H₁.'],
+  ['Test statistic','A value computed from the sample (e.g. z or t) that measures how far the data are from what H₀ predicts.'],
+  ['Critical value','The boundary value(s) of the test statistic that separate the rejection region from the non-rejection region.'],
+  ['Critical (rejection) region','The range of test-statistic values for which H₀ is rejected.'],
+  ['Non-rejection (acceptance) region','The range of test-statistic values for which H₀ is not rejected.'],
+  ['Significance level (α)','The probability of a Type I error that the tester is willing to accept; commonly 0.01, 0.05, or 0.10.'],
+  ['P-value','The probability, assuming H₀ is true, of getting a test statistic at least as extreme as the one observed. Reject H₀ when it is ≤ α.'],
+  ['Confidence interval','A range of plausible values for a parameter, constructed so that in repeated sampling a proportion (1 − α) of such intervals contain the true value.'],
+  ['Standard Error (SE)','The estimated standard deviation of a sample statistic, e.g. SE = s/√n for a sample mean.'],
+  ['Degrees of freedom (DF)','A number that determines the shape of the t distribution; for a one-sample test it equals n − 1.'],
+  ['Type I Error','Rejecting H₀ when it is actually true. P(Type I Error) = α.'],
+  ['Type II Error','Failing to reject H₀ when it is actually false. P(Type II Error) = β.'],
+  ['Z-test','A test based on the standard normal distribution, used when the population σ is known.'],
+  ['T-test','A test based on Student’s t distribution, used when the population σ is unknown and estimated by s.'],
+  ['Pooled variance','A weighted average of two sample variances, used when the population variances are assumed equal.'],
+  ['Welch’s method','A two-sample t procedure that does not assume equal population variances; it uses the Welch–Satterthwaite approximation for the degrees of freedom.'],
+  ['Two-tailed test','A test with rejection regions in both tails of the distribution; used when H₁ contains ≠.'],
+  ['Right-tailed test','A test with the rejection region in the right tail of the distribution; used when H₁ contains >.'],
+  ['Left-tailed test','A test with the rejection region in the left tail of the distribution; used when H₁ contains <.'],
+  ['Decision rule','The rule stating when H₀ should be rejected, e.g. |z| > critical value, or P-value ≤ α.'],
+  ['Margin of Error','Critical value × standard error; half the width of a confidence interval.'],
+  ['Confidence level','1 − α, usually written as a percentage, e.g. 95%.'],
+];
+function renderGlossary(){
+  const q = (document.getElementById('glossSearch').value||'').toLowerCase();
+  const list = GLOSSARY.filter(([t,d])=> t.toLowerCase().includes(q)||d.toLowerCase().includes(q));
+  document.getElementById('glossList').innerHTML = list.map(([t,d])=>`<div class="gloss-term"><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join('') || '<p class="muted">No matching terms.</p>';
+}
+
+/* ============================================================
+   SECTION 7: Formula reference
+   ============================================================ */
+const FORMULAS = [
+  {group:'One Population Mean — Confidence Interval',items:[
+    {name:'σ known',fx:'x̄ ± z(α/2) · σ/√n',meaning:'x̄ = sample mean, z(α/2) = critical z-value, σ = population SD, n = sample size.',when:'Population variance is known.',ex:'x̄=72.5, σ=6, n=36, z=1.96 → 95% CI = (70.54, 74.46)'},
+    {name:'σ unknown',fx:'x̄ ± t(α/2, n−1) · s/√n',meaning:'s = sample standard deviation, DF = n − 1.',when:'Population variance is unknown.',ex:'x̄=13.2, s=1.5, n=36 → 95% CI = (12.6925, 13.7075)'},
+  ]},
+  {group:'One Population Mean — Hypothesis Test',items:[
+    {name:'Z test statistic',fx:'z = (x̄ − μ₀) / (σ/√n)',meaning:'μ₀ = hypothesized mean.',when:'σ known.',ex:'x̄=249.5, μ₀=240, σ=30, n=36 → z=1.90'},
+    {name:'T test statistic',fx:'t = (x̄ − μ₀) / (s/√n)',meaning:'DF = n − 1.',when:'σ unknown.',ex:'x̄=2.9, μ₀=2.6, s=0.5, n=16 → t=2.400'},
+  ]},
+  {group:'Two Population Means — Confidence Interval',items:[
+    {name:'Known variances',fx:'(x̄₁−x̄₂) ± z(α/2) √(σ₁²/n₁+σ₂²/n₂)',meaning:'σ₁, σ₂ known population SDs.',when:'Both population variances known.',ex:'—'},
+    {name:'Equal unknown variances',fx:'(x̄₁−x̄₂) ± t(α/2,n₁+n₂−2) · s_p √(1/n₁+1/n₂)',meaning:'s_p = pooled standard deviation.',when:'Variances unknown, assumed equal.',ex:'—'},
+    {name:'Unequal unknown variances (Welch)',fx:'(x̄₁−x̄₂) ± t(α/2, ν) √(s₁²/n₁+s₂²/n₂)',meaning:'ν = Welch–Satterthwaite degrees of freedom.',when:'Variances unknown, assumed unequal.',ex:'—'},
+  ]},
+  {group:'Two Population Means — Hypothesis Test',items:[
+    {name:'Z test (known variances)',fx:'z = [(x̄₁−x̄₂) − (μ₁−μ₂)] / √(σ₁²/n₁+σ₂²/n₂)',meaning:'μ₁−μ₂ = hypothesized difference.',when:'Both σ known.',ex:'x̄₁=32.5, x̄₂=30.1, σ₁²=16, σ₂²=12.25, n₁=50, n₂=45 → z=3.1187'},
+    {name:'Pooled T test',fx:'t = [(x̄₁−x̄₂) − (μ₁−μ₂)] / [s_p√(1/n₁+1/n₂)]',meaning:'s_p² = [(n₁−1)s₁²+(n₂−1)s₂²]/(n₁+n₂−2), DF=n₁+n₂−2.',when:'σ unknown, equal variances assumed.',ex:'x̄₁=78.4, s₁=6.2, n₁=25, x̄₂=74.1, s₂=6.8, n₂=22 → s_p=6.4869, t=2.2676, DF=45'},
+    {name:"Welch's T test",fx:'t = [(x̄₁−x̄₂) − (μ₁−μ₂)] / √(s₁²/n₁+s₂²/n₂)',meaning:'ν = Welch–Satterthwaite DF (rounded down).',when:'σ unknown, unequal variances assumed.',ex:'Battery brands sample data → t=2.9405, ν=12.57 → 12'},
+  ]},
+  {group:'Standard Error & Degrees of Freedom',items:[
+    {name:'Standard error, one mean',fx:'SE = σ/√n  or  SE = s/√n',meaning:'—',when:'Any one-sample test/CI.',ex:'—'},
+    {name:'Degrees of freedom, one sample',fx:'DF = n − 1',meaning:'—',when:'t procedures, one sample.',ex:'—'},
+    {name:'Degrees of freedom, pooled two-sample',fx:'DF = n₁ + n₂ − 2',meaning:'—',when:'Equal-variance two-sample t procedures.',ex:'—'},
+    {name:'Welch–Satterthwaite DF',fx:'ν = (s₁²/n₁+s₂²/n₂)² / [(s₁²/n₁)²/(n₁−1) + (s₂²/n₂)²/(n₂−1)]',meaning:'ν is rounded down to the nearest integer.',when:'Unequal-variance two-sample t procedures.',ex:'—'},
+  ]},
+  {group:'P-value',items:[
+    {name:'Right-tailed',fx:'P = P(Z ≥ z)  or  P(T ≥ t)',meaning:'Area to the right of the test statistic.',when:'H₁ contains >.',ex:'—'},
+    {name:'Left-tailed',fx:'P = P(Z ≤ z)  or  P(T ≤ t)',meaning:'Area to the left of the test statistic.',when:'H₁ contains <.',ex:'—'},
+    {name:'Two-tailed',fx:'P = 2 × (smaller tail area)',meaning:'Doubles the one-sided tail probability.',when:'H₁ contains ≠.',ex:'—'},
+  ]},
+];
+function renderFormulaRef(){
+  document.getElementById('formulaRef').innerHTML = FORMULAS.map(g=>`
+    <h2>${esc(g.group)}</h2>
+    ${g.items.map(it=>`<div class="formula-card">
+      <h4>${esc(it.name)}</h4>
+      <div class="fx">${esc(it.fx)}</div>
+      <p class="small muted"><b>Symbols:</b> ${esc(it.meaning)}</p>
+      <p class="small muted"><b>When to use:</b> ${esc(it.when)}</p>
+      ${it.ex!=='—'?`<p class="small"><b>Example:</b> ${esc(it.ex)}</p>`:''}
+    </div>`).join('')}
+  `).join('');
+}
+
+/* ============================================================
+   Init
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  initNav();
+  renderGlossary();
+  renderFormulaRef();
+});
+</script>
+</body>
+</html>
